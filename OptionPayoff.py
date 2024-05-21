@@ -53,7 +53,7 @@ class OptionPortfolio:
     def add_option(self, *options):
         options_list = [*options]
         self.options.extend(options_list)
-        print(self.options)
+        #print(self.options)
 
     def total_payoff(self, spot):
         option_payoff = 0
