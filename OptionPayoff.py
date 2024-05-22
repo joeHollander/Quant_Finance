@@ -70,14 +70,10 @@ class OptionPortfolio:
 
 
 if __name__ == "__main__":
-    # call = Option("call", "sell", 110, time_to_expiration=0.1)
-    # put = Option("put", "sell", 90, time_to_expiration=0.1)
-    # strangle = OptionPortfolio()
-    # strangle.add_option(call, put)
-    # strangle.graph(70, 130)  
-    
-    shortcall = Option("call", "sell", 100)
-    shortcall_pos = OptionPortfolio()
-    shortcall_pos.add_option(shortcall)
-    shortcall_pos.graph(90, 110)
+    call = Option("call", "buy", 100, time_to_expiration=0.1)
+    put = Option("put", "buy", 100, time_to_expiration=0.1)
+    straddle = OptionPortfolio()
+    straddle.add_option(call, put)
+    straddle.graph(70, 130)  
+
 
