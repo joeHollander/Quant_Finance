@@ -73,7 +73,7 @@ class OptionPortfolio:
     
     def graph(self, start, stop):
         payoff = [self.total_payoff(i) for i in range(start, stop+5, 5)] 
-        print(payoff)
+        # print(payoff)
 
         fig, ax, = plt.subplots()
         ax.plot([i for i in range(start, stop+5, 5)], payoff)
