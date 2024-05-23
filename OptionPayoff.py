@@ -40,25 +40,41 @@ class Option:
             return value 
         elif action == "sell":
             return -1 * value 
+        
+class Stock:
+    def __init__(self, action, num_of_shares):
+        self.action = action
+        self.shares = num_of_shares
+
+    def payoff(self, spot):
+        if self.action == "buy":
+            value = self.shares * (spot - 100)
+        elif self.action == "sell":
+            value = self.shares * (100 - spot)
+
+        return value
 
 class OptionPortfolio: 
     def __init__(self):
         self.options = []
 
     def add_option(self, *options):
-        options_list = [*options]
-        self.options.extend(options_list)
+        self.options.extend([*options])
         # print(self.options)
+
+    def add_stock(self, *stocks):
+        self.options.extend([*stocks])
 
     def total_payoff(self, spot):
         option_payoff = 0
         for i in range(len(self.options)):
-            option_payoff += round(self.options[i].payoff(spot), 2)
+            option_payoff += round(self.options[i].payoff(spot), 3)
         return option_payoff
     
     def graph(self, start, stop):
         payoff = [self.total_payoff(i) for i in range(start, stop+5, 5)] 
         print(payoff)
+
         fig, ax, = plt.subplots()
         ax.plot([i for i in range(start, stop+5, 5)], payoff)
         plt.axhline(0, color="black")
@@ -66,11 +82,13 @@ class OptionPortfolio:
 
 
 if __name__ == "__main__":
-    # call = Option("call", "sell", 120, time_to_expiration=0.1)
-    # put = Option("put", "sell", 80, time_to_expiration=0.1)
-    # strangle = OptionPortfolio()
-    # strangle.add_option(call, put)
-    # strangle.graph(50, 150)  
+    # put overwriting example
+    # short = Stock("sell", 1)
+    # put = Option("put", "sell", 90)
+    # port = OptionPortfolio()
+    # port.add_stock(short)
+    # port.add_option(put)
+    # port.graph(70,130)
 
 
 
