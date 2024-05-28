@@ -22,8 +22,13 @@ class Option:
         d1 = (np.log(s/k) + t * (r + (o**2)/2)) / (o * np.sqrt(t))
         d2 = d1 - o * np.sqrt(t)
         # option prices
-        C = s * norm.cdf(d1) - (k * np.exp(-r * t)) * norm.cdf(d2)
-        return C 
+        C = s * norm.cdf(d1, 0, 1) - (k * np.exp(-r * t)) * norm.cdf(d2, 0, 1)
+        P = k * np.exp(-r * t) * norm.cdf(-d2, 0, 1) - s * norm.cdf(-d1, 0, 1 )
+        # call or put
+        if self.option_type == "call":
+            return C
+        elif self.option_type == "put":
+            return P
 
     def payoff(self, spot):
         option_type = self.option_type
@@ -82,13 +87,10 @@ class OptionPortfolio:
 
 
 if __name__ == "__main__":
-    # put overwriting example
-    # short = Stock("sell", 1)
-    # put = Option("put", "sell", 90)
-    # port = OptionPortfolio()
-    # port.add_stock(short)
-    # port.add_option(put)
-    # port.graph(70,130)
+    put = Option("put", "buy", 90)
+    port = OptionPortfolio()
+    port.add_option(put)
+    port.graph(70,130)
 
 
 
