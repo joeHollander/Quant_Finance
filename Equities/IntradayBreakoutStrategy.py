@@ -3,7 +3,8 @@ from nautilus_trader.backtest.engine import BacktestEngine, BacktestEngineConfig
 from nautilus_trader.trading.strategy import Strategy
 from nautilus_trader.model.currencies import USD
 from nautilus_trader.model.data import BarType
-from nautilus_trader.model.enums import AccountType, OrderSide, PositionSide, TimeInForce, OmsType, LogColor
+from nautilus_trader.model.enums import AccountType, OrderSide, PositionSide, TimeInForce, OmsType
+from nautilus_trader.common.enums import LogColor
 from nautilus_trader.model.identifiers import Venue, InstrumentId, PositionId
 from nautilus_trader.model.objects import Money
 from nautilus_trader.persistence.wranglers import BarDataWrangler
@@ -12,8 +13,11 @@ from nautilus_trader.config import StrategyConfig
 from nautilus_trader.model.instruments import Instrument
 from nautilus_trader.model.orders.list import OrderList
 from nautilus_trader.trading.strategy import Strategy
-from nautilus_trader.model.data.bar import Bar, BarSpecification
+from nautilus_trader.model.data import Bar, BarSpecification
 from nautilus_trader.model.objects import Price, Quantity
+from nautilus_trader.model.position import Position
+from decimal import Decimal
+from typing import Optional
 
 # library code 
 def make_bar_type(instrument_id: InstrumentId, bar_spec) -> BarType:
@@ -39,8 +43,8 @@ class IntradayTrendConfig(StrategyConfig):
     upper_bound_id : InstrumentId
     lower_bound_id : InstrumentId
     bar_type: BarType
-    bar_spec: str = "1-HOUR-LAST"
     trade_size: Decimal
+    bar_spec: str = "1-HOUR-LAST"
 
 class IntradayBreakout(Strategy):
     def __init__(self, config: IntradayTrendConfig):
@@ -108,23 +112,40 @@ class IntradayBreakout(Strategy):
             # Cancel any existing orders
             for order in self.cache.orders_open(instrument_id=self.instrument_id, strategy_id=self.id):
                 self.cancel_order(order=order)
+            # place order
             order = self.order_factory.limit(
                 instrument_id=self.target_id,
                 order_side=side,
-                price=Price(price, self.target.price_precision),
+                price=Price(market_right, self.instrument.price_precision),
                 quantity=Quantity.from_int(capped_volume),
-                time_in_force=TimeInForce.IOC,
+                time_in_force=TimeInForce.GTC,
             )
             self._log.info(f"ENTRY {order.info()}", color=LogColor.BLUE)
             self.submit_order(order, PositionId(f"target-{self._position_id}"))
             
 
     def _cap_volume(self, instrument_id: InstrumentId, max_quantity: int) -> int:
+        # most amount of quantity it could buy
         position_quantity = 0
         position = self.current_position(instrument_id)
         if position is not None:
             position_quantity = position.quantity
         return max(0, max_quantity - position_quantity)
+    
+    def _check_for_exit(self, timer=None, bar: Optional[Bar] = None):
+        # stop if no position
+        if not self.cache.positions(strategy_id=self.id):
+            return
+        
+        return
+    
+    def current_position(self, instrument_id: InstrumentId) -> Optional[Position]:
+        try:
+            side = {self.source_id: "source", self.instrument_id: "instrument"}[instrument_id]
+            return self.cache.position(PositionId(f"{side}-{self._position_id}"))
+        except AssertionError:
+            return None
+
 
 
 
