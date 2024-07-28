@@ -16,6 +16,7 @@ from nautilus_trader.trading.strategy import Strategy
 from nautilus_trader.model.data import Bar, BarSpecification
 from nautilus_trader.model.objects import Price, Quantity
 from nautilus_trader.model.position import Position
+from nautilus_trader.model.enums import AggregationSource
 from decimal import Decimal
 from typing import Optional
 
@@ -52,8 +53,8 @@ class IntradayBreakout(Strategy):
 
         # config
         self.instrument_id = config.instrument_id
-        self.upper_bound_id = InstrumentId.from_str(config.upper_bound_id)
-        self.lower_bound_id = InstrumentId.from_str(config.lower_bound_id)
+        self.upper_bound_id = config.upper_bound_id
+        self.lower_bound_id = config.lower_bound_id
         self.bar_type = config.bar_type
         self.trade_size = Decimal(config.trade_size)
         self.bar_spec = BarSpecification.from_str(self.config.bar_spec)
@@ -86,14 +87,14 @@ class IntradayBreakout(Strategy):
                 side = OrderSide.BUY
                 max_volume = int(self.config.notional_trade_size_usd / market_right)
                 capped_volume = self._cap_volume(self.instrument_id, max_volume)
-                self._log.debug(f"{side} {max_volume=} {capped_volume=} {price=}")
+                self._log.debug(f"{side} {max_volume=} {capped_volume=}")
 
             elif self.instrument < self.lower_bound:
                 side = OrderSide.SELL
                 side = OrderSide.BUY
                 max_volume = int(self.config.notional_trade_size_usd / market_right)
                 capped_volume = self._cap_volume(self.instrument_id, max_volume)
-                self._log.debug(f"{side} {max_volume=} {capped_volume=} {price=}")
+                self._log.debug(f"{side} {max_volume=} {capped_volume=}")
 
             else: 
                 return
