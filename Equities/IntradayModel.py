@@ -1,6 +1,11 @@
 from nautilus_trader.core.data import Data
 from nautilus_trader.common.actor import Actor, ActorConfig
 from nautilus_trader.core.datetime import dt_to_unix_nanos, unix_nanos_to_dt, format_iso8601
+import msgspec
+from nautilus_trader.core.data import Data
+from nautilus_trader.model.data import DataType
+from nautilus_trader.serialization.base import register_serializable_type
+from nautilus_trader.model.identifiers import InstrumentId
 
 
 def unix_nanos_to_str(unix_nanos):
@@ -21,13 +26,35 @@ class SingleBar(Data):
         self.ts_init = ts_init
 
     def __repr__(self):
-        return (f"SingleBar(instrument_id={self.instrument_id}, 
-                ts_event={unix_nanos_to_str(self._ts_event)},
-                  ts_init={unix_nanos_to_str(self._ts_init)},
+        return (f"SingleBar(instrument_id={self.instrument_id}, \
+                ts_event={unix_nanos_to_str(self._ts_event)}, \
+                  ts_init={unix_nanos_to_str(self._ts_init)}, \
                     bar_data={self.bar_data:.2f})")
-    
+    @property
+    def ts_event(self):
+        return self._ts_event
+
     @property
     def ts_init(self):
         return self._ts_init
 
+    def to_dict(self):
+        return {
+            "instrument_id": self.instrument_id.value,
+            "bar_data": self.bar_data,
+            "ts_event": self._ts_event,
+            "ts_init": self._ts_init,
+
+        }
+
+    def to_bytes(self):
+        return msgspec.msgpack.encode(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        return SingleBar(InstrumentId.from_str(data["instrument_id"]), data["bar_data"], data["ts_event"], data["ts_init"])
+
+    @classmethod
+    def from_bytes(cls, data: bytes):
+        return cls.from_dict(msgspec.msgpack.decode(data))
     
