@@ -65,14 +65,16 @@ class IntradayBreakout(Strategy):
         self.upper_bound = self.cache.instrument(self.upper_bound_id)
         self.lower_bound = self.cache.instrument(self.lower_bound_id)
 
+
         # subscribe to data
-        self.subscribe_bars(make_bar_type(instrument_id=self.instrument_id, bar_spec=self.bar_spec))
-        self.subscribe_bars(make_bar_type(instrument_id=self.upper_bound_id, bar_spec=self.bar_spec))
-        self.subscribe_bars(make_bar_type(instrument_id=self.lower_bound_id, bar_spec=self.bar_spec))
+        self.request_bars(make_bar_type(instrument_id=self.instrument_id, bar_spec=self.bar_spec))
+        self.request_bars(make_bar_type(instrument_id=self.upper_bound_id, bar_spec=self.bar_spec))
+        self.request_bars(make_bar_type(instrument_id=self.lower_bound_id, bar_spec=self.bar_spec))
 
     def on_bar(self, bar: Bar):
         self._check_for_entry(bar)
-        self._check_for_exit(bar=bar)
+        self._check_for_exit(bar)
+        print("close: ", self.cache.bar(self.instrument_id))
     
     def _check_for_entry(self, bar: Bar):
         if bar.bar_type.instrument_id == self.instrument_id:
@@ -91,7 +93,6 @@ class IntradayBreakout(Strategy):
 
             elif self.instrument < self.lower_bound:
                 side = OrderSide.SELL
-                side = OrderSide.BUY
                 max_volume = int(self.config.notional_trade_size_usd / market_right)
                 capped_volume = self._cap_volume(self.instrument_id, max_volume)
                 self._log.debug(f"{side} {max_volume=} {capped_volume=}")
@@ -146,7 +147,6 @@ class IntradayBreakout(Strategy):
             return self.cache.position(PositionId(f"{side}-{self._position_id}"))
         except AssertionError:
             return None
-
 
 
 
