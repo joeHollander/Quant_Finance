@@ -140,6 +140,7 @@ class IntradayBreakout(Strategy):
                 max_volume = int(self.config.notional_trade_size_usd / close)
                 capped_volume = self._cap_volume(self.instrument_id, max_volume)
                 self._log.debug(f"{side} {max_volume=} {capped_volume=}")
+                self._position_id += 1
 
         elif not self.position_side.is_long:
             if close > self.lower_bound:
@@ -147,6 +148,7 @@ class IntradayBreakout(Strategy):
                 max_volume = int(self.config.notional_trade_size_usd / close)
                 capped_volume = self._cap_volume(self.instrument_id, max_volume)
                 self._log.debug(f"{side} {max_volume=} {capped_volume=}")
+                self._position_id += 1
 
         self.order_conditions(capped_volume, side, close)
 

@@ -129,8 +129,8 @@ strategy = IntradayBreakout(strat_config)
 engine.add_strategy(strategy=strategy)
 
 # run
-engine.run()
+#engine.run()
 
 # report 
-print(engine.trader.generate_account_report(SIM))
+#print(engine.trader.generate_account_report(SIM))
 
