@@ -60,6 +60,7 @@ class IntradayBreakout(Strategy):
         self.bar_type = config.bar_type
         self.trade_size = Decimal(config.trade_size)
         self.bar_spec = BarSpecification.from_str(self.config.bar_spec)
+        self._position_id: int = 0
 
     def on_start(self):
         # instruments and save in cache
@@ -87,50 +88,28 @@ class IntradayBreakout(Strategy):
     def _check_for_entry(self, bar: Bar):
         if bar.bar_type.instrument_id == self.instrument_id:
             # Send in orders
-            quote_target: Bar = self.cache.bar(make_bar_type(self.instrument_id, bar_spec=self.bar_spec))
-            if not quote_target:
+            ohlc_bar = self.cache.bar(make_bar_type(self.instrument_id, bar_spec=self.bar_spec))
+            if not ohlc_bar:
                 return
 
-            market_right = quote_target.close
+            close = ohlc_bar.close
 
-            if market_right > self.upper_bound:
+            if close > self.upper_bound:
                 side = OrderSide.BUY
-                max_volume = int(self.config.notional_trade_size_usd / market_right)
+                max_volume = int(self.config.notional_trade_size_usd / close)
                 capped_volume = self._cap_volume(self.instrument_id, max_volume)
                 self._log.debug(f"{side} {max_volume=} {capped_volume=}")
 
-            elif market_right < self.lower_bound:
+            elif close < self.lower_bound:
                 side = OrderSide.SELL
-                max_volume = int(self.config.notional_trade_size_usd / market_right)
+                max_volume = int(self.config.notional_trade_size_usd / close)
                 capped_volume = self._cap_volume(self.instrument_id, max_volume)
                 self._log.debug(f"{side} {max_volume=} {capped_volume=}")
 
             else: 
                 return
             
-            if capped_volume == 0:
-                # We're at our max limit, cancel any remaining orders and return
-                for order in self.cache.orders_open(instrument_id=self.target_id, strategy_id=self.id):
-                    self.cancel_order(order=order)
-                return
-            self._log.info(
-                f"Entry opportunity: {side} market={market_right},"
-                f"{capped_volume=}",
-                color=LogColor.GREEN,
-            )
-            # Cancel any existing orders
-            for order in self.cache.orders_open(instrument_id=self.instrument_id, strategy_id=self.id):
-                self.cancel_order(order=order)
-            # place order
-            order = self.order_factory.limit(
-                instrument_id=self.target_id,
-                order_side=side,
-                price=Price(market_right, self.instrument.price_precision),
-                quantity=Quantity.from_int(capped_volume),
-                time_in_force=TimeInForce.GTC,
-            )
-            self._log.info(f"ENTRY {order.info()}", color=LogColor.BLUE)
-            self.submit_order(order, PositionId(f"target-{self._position_id}"))
+            self.order_conditions(capped_volume, side, close)
             
 
     def _cap_volume(self, instrument_id: InstrumentId, max_quantity: int) -> int:
@@ -148,6 +127,12 @@ class IntradayBreakout(Strategy):
         if not self.cache.positions(strategy_id=self.id):
             return
         
+        ohlc_bar = self.cache.bar(make_bar_type(self.instrument_id, bar_spec=self.bar_spec))
+        if not ohlc_bar:
+            return
+
+        close = ohlc_bar.close
+        
         # check if we bought and the price is below the upper bound and vice versa
         if self.position_side.is_long:
             if close < self.upper_bound:
@@ -163,10 +148,12 @@ class IntradayBreakout(Strategy):
                 capped_volume = self._cap_volume(self.instrument_id, max_volume)
                 self._log.debug(f"{side} {max_volume=} {capped_volume=}")
 
+        self.order_conditions(capped_volume, side, close)
 
+    def order_conditions(self, capped_volume, side, close):
         if capped_volume == 0:
             # We're at our max limit, cancel any remaining orders and return
-            for order in self.cache.orders_open(instrument_id=self.target_id, strategy_id=self.id):
+            for order in self.cache.orders_open(instrument_id=self.instrument_id, strategy_id=self.id):
                 self.cancel_order(order=order)
                 return
         self._log.info(
@@ -179,14 +166,14 @@ class IntradayBreakout(Strategy):
             self.cancel_order(order=order)
         # place order
         order = self.order_factory.limit(
-            instrument_id=self.target_id,
+            instrument_id=self.instrument_id,
             order_side=side,
             price=Price(close, self.instrument.price_precision),
             quantity=Quantity.from_int(capped_volume),
             time_in_force=TimeInForce.GTC,
         )
         self._log.info(f"ENTRY {order.info()}", color=LogColor.BLUE)
-        self.submit_order(order, PositionId(f"target-{self._position_id}"))
+        self.submit_order(order, PositionId(f"instrument-{self._position_id}"))
         
     
     def current_position(self, instrument_id: InstrumentId) -> Optional[Position]:

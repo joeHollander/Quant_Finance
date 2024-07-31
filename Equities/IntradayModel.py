@@ -13,14 +13,14 @@ def unix_nanos_to_str(unix_nanos):
 class BoundsData(Data):
     def __init__(self, instrument_id: str, upper_bound_data: float, lower_bound_data: float, ts_event=0, ts_init=0):
         super().__init__()
-        self.instrument_id = instrument_id
+        self.instrument_id = InstrumentId.from_str(instrument_id)
         self._ts_event = ts_event  
         self._ts_init = ts_init 
         self.upper_bound_data = upper_bound_data
         self.lower_bound_data = lower_bound_data
 
     def __repr__(self):
-        return (f"SingleBar(instrument_id={self.instrument_id}, "
+        return (f"BoundsData(instrument_id={self.instrument_id}, "
                 f"ts_event={unix_nanos_to_str(self._ts_event)}, "
                 f"ts_init={unix_nanos_to_str(self._ts_init)}, "
                 f"upper_bound_data={self.upper_bound_data:.2f}, "
