@@ -13,27 +13,26 @@ def unix_nanos_to_str(unix_nanos):
 class BoundsData(Data):
     def __init__(self, instrument_id: str, upper_bound_data: float, lower_bound_data: float, ts_event=0, ts_init=0):
         super().__init__()
-
         self.instrument_id = instrument_id
-        self.ts_event = 0
-        self.ts_init = 0
-
+        self._ts_event = ts_event  
+        self._ts_init = ts_init 
         self.upper_bound_data = upper_bound_data
         self.lower_bound_data = lower_bound_data
 
     def __repr__(self):
-        return (f"SingleBar(instrument_id={self.instrument_id}, \
-                ts_event={unix_nanos_to_str(self._ts_event)}, \
-                  ts_init={unix_nanos_to_str(self._ts_init)}, \
-                    upper_bound_data={self.upper_bound_data:.2f}, \
-                        lower_bound_data={self.lower_bound_data:.2f})")
+        return (f"SingleBar(instrument_id={self.instrument_id}, "
+                f"ts_event={unix_nanos_to_str(self._ts_event)}, "
+                f"ts_init={unix_nanos_to_str(self._ts_init)}, "
+                f"upper_bound_data={self.upper_bound_data:.2f}, "
+                f"lower_bound_data={self.lower_bound_data:.2f})")
+
     @property
     def ts_event(self):
         return self._ts_event
     
     @ts_event.setter
     def ts_event(self, value):
-        self._ts_event = value
+        self._ts_event = value 
 
     @property
     def ts_init(self):
@@ -41,7 +40,7 @@ class BoundsData(Data):
     
     @ts_init.setter
     def ts_init(self, value):
-        self.ts_init = value
+        self._ts_init = value  
 
     def to_dict(self):
         return {
