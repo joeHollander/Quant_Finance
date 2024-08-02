@@ -84,10 +84,10 @@ flat = pd.DataFrame(
 flat.index = pd.DatetimeIndex(flat.index)
 
 # function to load bounds data
-def load_bounds_data(instrument_id: str, upper_bound_col, lower_bound_col, date_index):
-    return [BoundsData(instrument_id, ub, lb, d.timestamp() * 1e9, date_index[0].timestamp() * 1e9) for ub, lb, d in zip(upper_bound_col, lower_bound_col, date_index)]
-
-bounds_data = load_bounds_data("MSFT.SIM", flat.loc[:, "upper_bound"], flat.loc[:, "lower_bound"], flat.index)
+def load_bounds_data(upper_bound_col, lower_bound_col, date_index):
+    return [BoundsData(ub, lb, d.timestamp() * 1e9, date_index[0].timestamp() * 1e9) for ub, lb, d in zip(upper_bound_col, lower_bound_col, date_index)]
+    
+bounds_data = load_bounds_data(flat.loc[:, "upper_bound"], flat.loc[:, "lower_bound"], flat.index)
 
 # engine
 engine = BacktestEngine()
@@ -119,8 +119,9 @@ engine.add_data(bounds_data , ClientId("SIM"))
 # strat config
 strat_config = IntradayTrendConfig(
     instrument_id=MSFT_SIM.id,
-    bounds_data_client_id = ClientId("SIM"),
+    bounds_data_client_id = ClientId("BOUNDS"),
     bar_type=bartype,
+    bounds_data=bounds_data,
     trade_size=Decimal("0.10")
 )
 
@@ -129,8 +130,13 @@ strategy = IntradayBreakout(strat_config)
 engine.add_strategy(strategy=strategy)
 
 # run
-#engine.run()
+engine.run()
 
 # report 
-#print(engine.trader.generate_account_report(SIM))
+print(engine.trader.generate_account_report(SIM))
+
+# dispose of engine
+engine.dispose()
+
+print(type(bounds_data))
 

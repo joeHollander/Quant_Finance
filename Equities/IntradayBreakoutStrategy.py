@@ -2,8 +2,8 @@
 from nautilus_trader.backtest.engine import BacktestEngine, BacktestEngineConfig
 from nautilus_trader.trading.strategy import Strategy
 from nautilus_trader.model.currencies import USD
-from nautilus_trader.model.data import BarType, DataType
-from nautilus_trader.model.enums import AccountType, OrderSide, PositionSide, TimeInForce, OmsType
+from nautilus_trader.model.data import BarType, DataType, Bar, BarSpecification
+from nautilus_trader.model.enums import AccountType, OrderSide, PositionSide, TimeInForce, OmsType, AggregationSource
 from nautilus_trader.common.enums import LogColor
 from nautilus_trader.model.identifiers import Venue, InstrumentId, PositionId, ClientId
 from nautilus_trader.model.objects import Money
@@ -13,20 +13,19 @@ from nautilus_trader.config import StrategyConfig
 from nautilus_trader.model.instruments import Instrument
 from nautilus_trader.model.orders.list import OrderList
 from nautilus_trader.trading.strategy import Strategy
-from nautilus_trader.model.data import Bar, BarSpecification
 from nautilus_trader.model.objects import Price, Quantity
 from nautilus_trader.model.position import Position
-from nautilus_trader.model.enums import AggregationSource
 from decimal import Decimal
 from typing import Optional
 from IntradayModel import BoundsData
 from nautilus_trader.core.data import Data
 from nautilus_trader.model.position import Position
 from nautilus_trader.model.events import OrderFilled
+from nautilus_trader.serialization.base import register_serializable_type
 
 # library code 
 def make_bar_type(instrument_id: InstrumentId, bar_spec) -> BarType:
-    return BarType(instrument_id=instrument_id, bar_spec=bar_spec, aggregation_source=AggregationSource.EXTERNAL)
+    return BarType(instrument_id=instrument_id, bar_spec=bar_spec, aggregation_source=AggregationSource.INTERNAL)
 
 def human_readable_duration(ns: float):
     from dateutil.relativedelta import relativedelta  # type: ignore
@@ -48,7 +47,8 @@ class IntradayTrendConfig(StrategyConfig):
     bounds_data_client_id: ClientId
     bar_type: BarType
     trade_size: Decimal
-    bar_spec: str = "1-HOUR-LAST"
+    bounds_data: list[Data] 
+    
 
 class IntradayBreakout(Strategy):
     def __init__(self, config: IntradayTrendConfig):
@@ -59,8 +59,14 @@ class IntradayBreakout(Strategy):
         self.bounds_data_client_id = config.bounds_data_client_id
         self.bar_type = config.bar_type
         self.trade_size = Decimal(config.trade_size)
-        self.bar_spec = BarSpecification.from_str(self.config.bar_spec)
+        self.bar_spec = BarSpecification.from_str("1-HOUR-LAST")
+        self.bounds_data = config.bounds_data
         self._position_id: int = 0
+
+    #register_serializable_type(BoundsData, BoundsData.to_dict, BoundsData.from_dict)
+
+    def publish_greeks(self, greeks_data: BoundsData):
+        self.publish_data(DataType(BoundsData), greeks_data)
 
     def on_start(self):
         # instruments and save in cache
@@ -69,8 +75,8 @@ class IntradayBreakout(Strategy):
         # subscribe to data
         self.request_bars(make_bar_type(instrument_id=self.instrument_id, bar_spec=self.bar_spec))
         self.subscribe_data(
-        client_id=self.bounds_data_client_id, data_type=DataType(BoundsData)
-    )
+            data_type=DataType(BoundsData)
+        )
 
     def on_bar(self, bar: Bar):
         self._check_for_entry(bar)
