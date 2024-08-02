@@ -71,18 +71,18 @@ class IntradayBreakout(Strategy):
         
     def next(self):
         index = self.data.index[-1]
-        if crossover(self.data.Close[-1], self.upper_bound.loc[index]):
+        if crossover(self.data.Close, self.upper_bound.loc[index]):
             self.position.close()
             self.buy()
 
-        elif crossover(self.lower_bound.loc[index], self.data.Close[-1]):
+        elif crossover(self.lower_bound.loc[index], self.data.Close):
             self.position.close()
             self.sell()
 
-        elif crossover(self.upper_bound.loc[index], self.data.Close[-1]):
+        elif crossover(self.upper_bound.loc[index], self.data.Close):
             self.position.close()
 
-        elif crossover(self.data.Close[-1], self.lower_bound.loc[index]):
+        elif crossover(self.data.Close, self.lower_bound.loc[index]):
             self.position.close()
 
 flat.columns = map(lambda x: str(x).capitalize(), flat.columns)
@@ -90,4 +90,5 @@ flat.columns = map(lambda x: str(x).capitalize(), flat.columns)
 bt = Backtest(flat.loc[:, "Open": "Close"], IntradayBreakout, commission=0.002)
 stats = bt.run()
 print(stats)
-#bt.plot()
+print(stats['_equity_curve'])
+print(stats['_trades'])
