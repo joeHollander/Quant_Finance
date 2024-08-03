@@ -1,24 +1,15 @@
 from nautilus_trader.core.data import Data
 from nautilus_trader.common.actor import Actor, ActorConfig
 from nautilus_trader.core.datetime import dt_to_unix_nanos, unix_nanos_to_dt, format_iso8601
-<<<<<<< HEAD
-from nautilus_trader.model.data import DataType
-from nautilus_trader.model.data import Bar, BarSpecification, BarType
+from nautilus_trader.model.data import DataType, BarType, Bar, BarSpecification
 from nautilus_trader.serialization.base import register_serializable_type
 from nautilus_trader.model.identifiers import InstrumentId
 from nautilus_trader.model.enums import AggregationSource
-from nautilus_trader.common.enums import LogColor
+from datetime import datetime 
+import msgspec
 from typing import List
 import pandas as pd
 import numpy as np
-from datetime import datetime
-=======
-from nautilus_trader.model.data import DataType, BarType, Bar
-from nautilus_trader.serialization.base import register_serializable_type
-from nautilus_trader.model.identifiers import InstrumentId
-from nautilus_trader.model.enums import AggregationSource
->>>>>>> 2e95e134e6e4ba006f0e68c97faa73a7a76a7bcb
-import msgspec
 
 
 def unix_nanos_to_str(unix_nanos):
@@ -26,7 +17,6 @@ def unix_nanos_to_str(unix_nanos):
 
 def make_bar_type(instrument_id: InstrumentId, bar_spec) -> BarType:
     return BarType(instrument_id=instrument_id, bar_spec=bar_spec, aggregation_source=AggregationSource.INTERNAL)
-<<<<<<< HEAD
 
 def bars_to_dataframe(symbol_id: str, symbol_bars: List[Bar], n: int = 64) -> pd.DataFrame:
     def _bars_to_frame(bars, instrument_id):
@@ -108,9 +98,6 @@ class BoundsBreakoutActor(Actor):
             data_type=DataType(BoundsData),
             data=bounds_update
         )
-        
-    
-
 
 class MoveData(Data):
     def __init__(self, instrument_id: str, abs_move: float, ts_event=0, ts_init=0):
@@ -156,12 +143,6 @@ class BoundsData(Data):
         self.instrument_id = instrument_id
         self._ts_event = ts_event
         self._ts_init = ts_init
-=======
-
-class BoundsData(Data):
-    def __init__(self, upper_bound_data: float, lower_bound_data: float, ts_event: int, ts_init: int) -> None:
-        super().__init__()
->>>>>>> 2e95e134e6e4ba006f0e68c97faa73a7a76a7bcb
 
         self.upper_bound_data = upper_bound_data
         self.lower_bound_data = lower_bound_data
