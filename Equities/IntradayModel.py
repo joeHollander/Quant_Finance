@@ -138,7 +138,6 @@ class MoveData(Data):
 class BoundsData(Data):
     def __init__(self, instrument_id: str, upper_bound_data: float, lower_bound_data: float,
                   ts_event=0, ts_init=0):
-        super().__init__(ts_init=ts_init, ts_event=ts_init)
 
         self.instrument_id = instrument_id
         self._ts_event = ts_event

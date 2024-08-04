@@ -41,6 +41,30 @@ def human_readable_duration(ns: float):
         ]
     )
 
+class EmptyConfig(StrategyConfig):
+    instrument_id: InstrumentId
+    bar_type: BarType 
+
+class EmptyStrategy(Strategy):
+    def __init__(self, config: EmptyConfig):
+        super().__init__(config=config)
+
+        self.instrument_id = config.instrument_id
+        self.bar_type = config.bar_type
+        self.bar_spec = BarSpecification.from_str("1-HOUR-LAST")
+
+    def on_start(self):
+        self.instrument = self.cache.instrument(self.instrument_id)
+        self.request_bars(make_bar_type(self.instrument_id, self.bar_spec))
+        self.subscribe_data(data_type=DataType(BoundsData))
+
+    def on_bar(self, bar: Bar):
+        self._log.info(f"Got MSFT data at {bar.ts_init}", color=LogColor.YELLOW)
+
+    def on_data(self, data: Data):
+        if isinstance(data, BoundsData):
+            self._log.info(f"Got bounds data at {data.ts_init}", color=LogColor.RED)
+
 # strategy
 class IntradayTrendConfig(StrategyConfig):
     instrument_id: InstrumentId
@@ -62,11 +86,6 @@ class IntradayBreakout(Strategy):
         self.bar_spec = BarSpecification.from_str("1-HOUR-LAST")
         self.bounds_data = config.bounds_data
         self._position_id: int = 0
-
-    #register_serializable_type(BoundsData, BoundsData.to_dict, BoundsData.from_dict)
-
-    def publish_greeks(self, greeks_data: BoundsData):
-        self.publish_data(DataType(BoundsData), greeks_data)
 
     def on_start(self):
         # instruments and save in cache

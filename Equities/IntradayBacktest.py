@@ -2,7 +2,6 @@
 import time
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import datetime as dt
 import yfinance as yf
 from datetime import datetime
@@ -22,8 +21,8 @@ from nautilus_trader.model.orders.list import OrderList
 from nautilus_trader.trading.strategy import Strategy
 from nautilus_trader.model.data import Bar, BarSpecification, BarType
 from nautilus_trader.model.enums import OrderSide, PositionSide, TimeInForce
-from IntradayBreakoutStrategy import IntradayBreakout, IntradayTrendConfig
-from IntradayModel import BoundsData
+from IntradayBreakoutStrategy import IntradayBreakout, IntradayTrendConfig, EmptyConfig, EmptyStrategy
+from IntradayModel import BoundsData, MoveData
 from decimal import Decimal
 
 #loading data
@@ -114,7 +113,6 @@ bars = wrangler.process(flat.loc[:, "open":"close"])
 
 # adding data
 engine.add_data(bars)
-engine.add_data(bounds_data , ClientId("SIM"))
 
 # strat config
 strat_config = IntradayTrendConfig(
@@ -125,8 +123,15 @@ strat_config = IntradayTrendConfig(
     trade_size=Decimal("0.10")
 )
 
+# empty config
+empty_config = EmptyConfig(
+    InstrumentId=MSFT_SIM.id,
+    bar_type=bartype
+)
+
 # adding strategy
-strategy = IntradayBreakout(strat_config)
+# strategy = IntradayBreakout(strat_config)
+strategy = EmptyStrategy(empty_config)
 engine.add_strategy(strategy=strategy)
 
 # run
