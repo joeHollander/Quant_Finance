@@ -13,7 +13,7 @@ from nautilus_trader.model.enums import AccountType, OmsType
 from nautilus_trader.model.identifiers import Venue, ClientId
 from nautilus_trader.model.objects import Money
 from nautilus_trader.persistence.wranglers import BarDataWrangler
-from nautilus_trader.test_kit.providers import TestInstrumentProvider
+from nautilus_trader.test_kit.providers import TestInstrumentProvider, TestDataProvider
 from nautilus_trader.config import StrategyConfig
 from nautilus_trader.model.identifiers import InstrumentId
 from nautilus_trader.model.instruments import Instrument
@@ -27,6 +27,7 @@ from decimal import Decimal
 
 #loading data
 msft = yf.download("MSFT", "2023-01-01", "2023-12-31", interval="1h")
+
 
 # initializing df for organization
 df = pd.DataFrame()
@@ -82,12 +83,6 @@ flat = pd.DataFrame(
 
 flat.index = pd.DatetimeIndex(flat.index)
 
-# function to load bounds data
-def load_bounds_data(upper_bound_col, lower_bound_col, date_index):
-    return [BoundsData(ub, lb, d.timestamp() * 1e9, date_index[0].timestamp() * 1e9) for ub, lb, d in zip(upper_bound_col, lower_bound_col, date_index)]
-    
-bounds_data = load_bounds_data(flat.loc[:, "upper_bound"], flat.loc[:, "lower_bound"], flat.index)
-
 # engine
 engine = BacktestEngine()
 
@@ -95,7 +90,7 @@ engine = BacktestEngine()
 SIM = Venue("SIM")
 engine.add_venue(
     venue=SIM,
-    oms_type=OmsType.NETTING,  # Venue will generate position IDs
+    oms_type=OmsType.HEDGING,  # Venue will generate position IDs
     account_type=AccountType.CASH,
     base_currency=None,  # Standard single-currency account
     starting_balances=[Money(100_000, USD)]  # Single-currency or multi-currency accounts
@@ -119,19 +114,17 @@ strat_config = IntradayTrendConfig(
     instrument_id=MSFT_SIM.id,
     bounds_data_client_id = ClientId("BOUNDS"),
     bar_type=bartype,
-    bounds_data=bounds_data,
     trade_size=Decimal("0.10")
 )
 
 # empty config
 empty_config = EmptyConfig(
-    InstrumentId=MSFT_SIM.id,
+    instrument_id=MSFT_SIM.id,
     bar_type=bartype
 )
 
 # adding strategy
-# strategy = IntradayBreakout(strat_config)
-strategy = EmptyStrategy(empty_config)
+strategy = IntradayBreakout(strat_config)
 engine.add_strategy(strategy=strategy)
 
 # run
@@ -142,6 +135,3 @@ print(engine.trader.generate_account_report(SIM))
 
 # dispose of engine
 engine.dispose()
-
-print(type(bounds_data))
-

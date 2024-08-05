@@ -59,11 +59,11 @@ class EmptyStrategy(Strategy):
         self.subscribe_data(data_type=DataType(BoundsData))
 
     def on_bar(self, bar: Bar):
-        self._log.info(f"Got MSFT data at {bar.ts_init}", color=LogColor.YELLOW)
+        self.log.info(f"Got MSFT data at {bar.ts_init}", color=LogColor.YELLOW)
 
     def on_data(self, data: Data):
         if isinstance(data, BoundsData):
-            self._log.info(f"Got bounds data at {data.ts_init}", color=LogColor.RED)
+            self.log.info(f"Got bounds data at {data.ts_init}", color=LogColor.RED)
 
 # strategy
 class IntradayTrendConfig(StrategyConfig):
@@ -71,8 +71,6 @@ class IntradayTrendConfig(StrategyConfig):
     bounds_data_client_id: ClientId
     bar_type: BarType
     trade_size: Decimal
-    bounds_data: list[Data] 
-    
 
 class IntradayBreakout(Strategy):
     def __init__(self, config: IntradayTrendConfig):
@@ -84,7 +82,6 @@ class IntradayBreakout(Strategy):
         self.bar_type = config.bar_type
         self.trade_size = Decimal(config.trade_size)
         self.bar_spec = BarSpecification.from_str("1-HOUR-LAST")
-        self.bounds_data = config.bounds_data
         self._position_id: int = 0
 
     def on_start(self):
@@ -97,10 +94,12 @@ class IntradayBreakout(Strategy):
             data_type=DataType(BoundsData)
         )
 
+        self.log.info("STARTING!!!!")
+
     def on_bar(self, bar: Bar):
         self._check_for_entry(bar)
         self._check_for_exit(bar)
-        print("close: ", self.cache.bar(self.instrument_id))
+        self.log.info(f"Recieved bar: {bar.close, bar.ts_init, bar.ts_event}")
 
     def on_data(self, data: Data):
         if data.data_type == DataType(BoundsData):
@@ -123,13 +122,13 @@ class IntradayBreakout(Strategy):
                 side = OrderSide.BUY
                 max_volume = int(self.config.notional_trade_size_usd / close)
                 capped_volume = self._cap_volume(self.instrument_id, max_volume)
-                self._log.debug(f"{side} {max_volume=} {capped_volume=}")
+                self.log.debug(f"{side} {max_volume=} {capped_volume=}")
 
             elif close < self.lower_bound:
                 side = OrderSide.SELL
                 max_volume = int(self.config.notional_trade_size_usd / close)
                 capped_volume = self._cap_volume(self.instrument_id, max_volume)
-                self._log.debug(f"{side} {max_volume=} {capped_volume=}")
+                self.log.debug(f"{side} {max_volume=} {capped_volume=}")
 
             else: 
                 return
@@ -164,7 +163,7 @@ class IntradayBreakout(Strategy):
                 side = OrderSide.SELL
                 max_volume = int(self.config.notional_trade_size_usd / close)
                 capped_volume = self._cap_volume(self.instrument_id, max_volume)
-                self._log.debug(f"{side} {max_volume=} {capped_volume=}")
+                self.log.debug(f"{side} {max_volume=} {capped_volume=}")
                 self._position_id += 1
 
         elif not self.position_side.is_long:
@@ -172,7 +171,7 @@ class IntradayBreakout(Strategy):
                 side = OrderSide.BUY
                 max_volume = int(self.config.notional_trade_size_usd / close)
                 capped_volume = self._cap_volume(self.instrument_id, max_volume)
-                self._log.debug(f"{side} {max_volume=} {capped_volume=}")
+                self.log.debug(f"{side} {max_volume=} {capped_volume=}")
                 self._position_id += 1
 
         self.order_conditions(capped_volume, side, close)
@@ -183,7 +182,7 @@ class IntradayBreakout(Strategy):
             for order in self.cache.orders_open(instrument_id=self.instrument_id, strategy_id=self.id):
                 self.cancel_order(order=order)
                 return
-        self._log.info(
+        self.log.info(
             f"Entry opportunity: {side} market={close},"
             f"{capped_volume=}",
             color=LogColor.GREEN,
@@ -199,7 +198,7 @@ class IntradayBreakout(Strategy):
             quantity=Quantity.from_int(capped_volume),
             time_in_force=TimeInForce.GTC,
         )
-        self._log.info(f"ENTRY {order.info()}", color=LogColor.BLUE)
+        self.log.info(f"ENTRY {order.info()}", color=LogColor.BLUE)
         self.submit_order(order, PositionId(f"instrument-{self._position_id}"))
         
     
