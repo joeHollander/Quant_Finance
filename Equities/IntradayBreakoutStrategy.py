@@ -25,7 +25,7 @@ from nautilus_trader.serialization.base import register_serializable_type
 
 # library code 
 def make_bar_type(instrument_id: InstrumentId, bar_spec) -> BarType:
-    return BarType(instrument_id=instrument_id, bar_spec=bar_spec, aggregation_source=AggregationSource.INTERNAL)
+    return BarType(instrument_id=instrument_id, bar_spec=bar_spec, aggregation_source=AggregationSource.EXTERNAL)
 
 def human_readable_duration(ns: float):
     from dateutil.relativedelta import relativedelta  # type: ignore
@@ -59,16 +59,15 @@ class EmptyStrategy(Strategy):
         self.subscribe_data(data_type=DataType(BoundsData))
 
     def on_bar(self, bar: Bar):
-        self.log.info(f"Got MSFT data at {bar.ts_init}", color=LogColor.YELLOW)
+        self.log.info(f"Got MSFT data at {bar.ts_event}", color=LogColor.YELLOW)
 
     def on_data(self, data: Data):
         if isinstance(data, BoundsData):
-            self.log.info(f"Got bounds data at {data.ts_init}", color=LogColor.RED)
+            self.log.info(f"Got bounds data at {data.ts_event}", color=LogColor.RED)
 
 # strategy
 class IntradayTrendConfig(StrategyConfig):
     instrument_id: InstrumentId
-    bounds_data_client_id: ClientId
     bar_type: BarType
     trade_size: Decimal
 
@@ -78,7 +77,6 @@ class IntradayBreakout(Strategy):
 
         # config
         self.instrument_id = config.instrument_id
-        self.bounds_data_client_id = config.bounds_data_client_id
         self.bar_type = config.bar_type
         self.trade_size = Decimal(config.trade_size)
         self.bar_spec = BarSpecification.from_str("1-HOUR-LAST")
@@ -94,15 +92,16 @@ class IntradayBreakout(Strategy):
             data_type=DataType(BoundsData)
         )
 
-        self.log.info("STARTING!!!!")
+        self.log.info("!!!!STARTING!!!!", color=LogColor.RED)
 
     def on_bar(self, bar: Bar):
         self._check_for_entry(bar)
         self._check_for_exit(bar)
-        self.log.info(f"Recieved bar: {bar.close, bar.ts_init, bar.ts_event}")
+        self.log.info(f"Recieved bar: {bar.close, bar.ts_event}")
 
     def on_data(self, data: Data):
         if data.data_type == DataType(BoundsData):
+            self.log.info("Got data!!!", color=LogColor.RED)
             self.upper_bound = data.upper_bound_data
             self.lower_bound = data.lower_bound_data
 
@@ -191,12 +190,11 @@ class IntradayBreakout(Strategy):
         for order in self.cache.orders_open(instrument_id=self.instrument_id, strategy_id=self.id):
             self.cancel_order(order=order)
         # place order
-        order = self.order_factory.limit(
+        order = self.order_factory.market(
             instrument_id=self.instrument_id,
             order_side=side,
-            price=Price(close, self.instrument.price_precision),
             quantity=Quantity.from_int(capped_volume),
-            time_in_force=TimeInForce.GTC,
+            tags=["ORDER"]
         )
         self.log.info(f"ENTRY {order.info()}", color=LogColor.BLUE)
         self.submit_order(order, PositionId(f"instrument-{self._position_id}"))

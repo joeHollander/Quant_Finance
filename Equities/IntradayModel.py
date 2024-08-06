@@ -5,6 +5,7 @@ from nautilus_trader.model.data import DataType, BarType, Bar, BarSpecification
 from nautilus_trader.serialization.base import register_serializable_type
 from nautilus_trader.model.identifiers import InstrumentId
 from nautilus_trader.model.enums import AggregationSource
+from nautilus_trader.common.enums import LogColor
 from datetime import datetime 
 import msgspec
 from typing import List
@@ -21,119 +22,13 @@ def make_bar_type(instrument_id: InstrumentId, bar_spec) -> BarType:
 def bars_to_dataframe(symbol_id: str, symbol_bars: List[Bar], n: int = 64) -> pd.DataFrame:
     def _bars_to_frame(bars, instrument_id):
         df = pd.DataFrame([t.to_dict(t) for t in bars[-n::7]]).astype({"close": float})
-        df.loc[:, "ts_init"] = [datetime.fromtimestamp(x // 1e9) for x in df.loc[:, "ts_init"]]
+        df.loc[:, "ts_event"] = [datetime.fromtimestamp(x // 1e9) for x in df.loc[:, "ts_event"]]
         res = df.assign(instrument_id=instrument_id)
         
 
     df = _bars_to_frame(bars=symbol_bars, instrument_id=symbol_id)
     data = df["close"].unstack(0).sort_index().fillna(method="ffill")
     return data.dropna()
-
-class BoundsBreakoutConfig(ActorConfig):
-    symbol: str
-    bar_spec: str = "1-HOUR-LAST"
-    moving_average_length: int = 14
-
-class BoundsBreakoutActor(Actor):
-    def __init__(self, config: BoundsBreakoutConfig):
-        super.__init__(config=config)
-
-        self.symbol_id = InstrumentId.from_str(config.symbol)
-        self.bar_spec = BarSpecification.from_str(self.config.bar_spec)
-        self.ma_length = config.moving_average_length
-        self.bar_type = make_bar_type(instrument_id=self.symbol_id, bar_spec=self.bar_spec)
-        self.day_open = None
-        self.day_open_date = None
-
-    def on_start(self):
-        self.instrument = self.cache.instrument(self.symbol_id)
-
-        self.subscribe_bars(self.bar_type)
-        self.subscribe_data(DataType(MoveData)) 
-
-    def on_data(self, data):
-        if isinstance(data, MoveData):
-            self.cache.add(f"{self.symbol_id.value}_move", data.to_bytes())
-
-    def on_bar(self, bar: Bar): 
-        self._find_move(bar)
-        if self._check_data_length(bar):
-            self._find_bounds(bar)
-
-    def _check_data_length(self, bar: Bar):
-        bars = self.cache.bars(bar_type=self.bar_type)
-        if not bars:
-            return False
-        time_from_start = self.clock.timestamp_ns() - bar.ts_init
-        return time_from_start >= pd.Timedelta("14 days").nanoseconds
-
-    def _find_open(self, bar: Bar):
-        date = datetime.fromtimestamp(bar.ts_init).date()
-        if date != self.day_open_date:
-            self.day_open = bar.open
-            self.day_open_date = bar.ts_init
-
-    def _find_move(self, bar: Bar):
-        self._find_open(bar)
-        if self.day_open is None:
-            return
-        
-        move = np.abs(bar.close/self.day_open - 1)
-
-        move_update = MoveData(self.symbol_id.value, move, ts_init=bar.ts_init)
-        self.publish_data(
-            data_type=DataType(MoveData), 
-            data=move_update
-        )
-
-    def _find_bounds(self, bar: Bar):
-        moves = MoveData.from_bytes(self.cache.get(f"{self.symbol_id.value}"))
-        move_avg = np.average(moves[-64::7])
-        
-        upper_bound = self.day_open * (1 + move_avg)
-        lower_bound = self.day_open * (1 - move_avg)
-
-        bounds_update = BoundsData(self.symbol_id.value, upper_bound, lower_bound, ts_init=bar.ts_init)
-        self.publish_data(
-            data_type=DataType(BoundsData),
-            data=bounds_update
-        )
-
-class MoveData(Data):
-    def __init__(self, instrument_id: str, abs_move: float, ts_event=0, ts_init=0):
-        self.instrument_id = instrument_id
-        self.abs_move = abs_move
-        self.ts_event = ts_event
-        self.ts_init = ts_init
-
-    @property
-    def ts_event(self):
-        return self._ts_event
-
-    @property
-    def ts_init(self):
-        return self._ts_init   
-
-    def to_dict(self):
-        return {
-            "instrument_id": self.instrument_id.value,
-            "abs_move": self.abs_move,
-            "ts_event": self._ts_event,
-            "ts_init": self._ts_init
-
-        }
-
-    def to_bytes(self):
-        return msgspec.msgpack.encode(self.to_dict())
-
-    @classmethod
-    def from_dict(cls, data: dict):
-        return MoveData(InstrumentId.from_str(data["instrument_id"]), data["abs_move"], 
-                        data["ts_event"], data["ts_init"])
-
-    @classmethod
-    def from_bytes(cls, data: bytes):
-        return cls.from_dict(msgspec.msgpack.decode(data))
 
 class BoundsData(Data):
     def __init__(self, instrument_id: str, upper_bound_data: float, lower_bound_data: float,
@@ -189,3 +84,117 @@ class BoundsData(Data):
     @classmethod
     def from_bytes(cls, data: bytes):
         return cls.from_dict(msgspec.msgpack.decode(data))
+
+class MoveData(Data):
+    def __init__(self, instrument_id: str, abs_move: float, ts_event=0, ts_init=0):
+        self.instrument_id = instrument_id
+        self.abs_move = abs_move
+        self.ts_event = ts_event
+        self.ts_init = ts_init
+
+    @property
+    def ts_event(self):
+        return self._ts_event
+
+    @property
+    def ts_init(self):
+        return self._ts_init   
+
+    def to_dict(self):
+        return {
+            "instrument_id": self.instrument_id.value,
+            "abs_move": self.abs_move,
+            "ts_event": self._ts_event,
+            "ts_init": self._ts_init
+
+        }
+
+    def to_bytes(self):
+        return msgspec.msgpack.encode(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        return MoveData(InstrumentId.from_str(data["instrument_id"]), data["abs_move"], 
+                        data["ts_event"], data["ts_init"])
+
+    @classmethod
+    def from_bytes(cls, data: bytes):
+        return cls.from_dict(msgspec.msgpack.decode(data))
+
+class BoundsBreakoutConfig(ActorConfig):
+    instrument_id: InstrumentId
+    bar_spec: str = "1-HOUR-LAST"
+    moving_average_length: int = 14
+
+class BoundsBreakoutActor(Actor):
+    def __init__(self, config: BoundsBreakoutConfig):
+        super().__init__(config=config)
+
+        self.symbol_id = config.instrument_id
+        self.bar_spec = BarSpecification.from_str(self.config.bar_spec)
+        self.ma_length = config.moving_average_length
+        self.bar_type = make_bar_type(instrument_id=self.symbol_id, bar_spec=self.bar_spec)
+        self.day_open = None
+        self.day_open_date = None
+
+    register_serializable_type(BoundsData, BoundsData.to_dict, BoundsData.from_dict)
+
+    def on_start(self):
+        self.instrument = self.cache.instrument(self.symbol_id)
+
+        self.subscribe_bars(self.bar_type)
+        self.subscribe_data(DataType(MoveData)) 
+
+        self.log.info("Actor starting!!!", color=LogColor.RED)
+
+    def on_data(self, data):
+        if isinstance(data, MoveData):
+            self.cache.add(f"{self.symbol_id.value}_move", data.to_bytes())
+
+
+    def on_bar(self, bar: Bar): 
+        self._find_move(bar)
+        if self._check_data_length(bar):
+            self._find_bounds(bar)
+
+        self.log.info(f"Got bar at {bar.ts_event}")
+
+    def _check_data_length(self, bar: Bar):
+        bars = self.cache.bars(bar_type=self.bar_type)
+        if not bars:
+            return False
+        time_from_start = self.clock.timestamp_ns() - bar.ts_event
+        return time_from_start >= pd.Timedelta("14 days").nanoseconds
+
+    def _find_open(self, bar: Bar):
+        date = datetime.fromtimestamp(bar.tts_event).date()
+        if date != self.day_open_date:
+            self.day_open = bar.open
+            self.day_open_date = bar.ts_event
+
+    def _find_move(self, bar: Bar):
+        self._find_open(bar)
+        if self.day_open is None:
+            return
+        
+        move = np.abs(bar.close/self.day_open - 1)
+
+        move_update = MoveData(self.symbol_id.value, move, ts_event=bar.ts_event)
+        self.publish_data(
+            data_type=DataType(MoveData), 
+            data=move_update
+        )
+
+    def _find_bounds(self, bar: Bar):
+        moves = MoveData.from_bytes(self.cache.get(f"{self.symbol_id.value}"))
+        move_avg = np.average(moves[-64::7])
+        
+        upper_bound = self.day_open * (1 + move_avg)
+        lower_bound = self.day_open * (1 - move_avg)
+
+        bounds_update = BoundsData(self.symbol_id.value, upper_bound, lower_bound, ts_event=bar.ts_event)
+        self.publish_data(
+            data_type=DataType(BoundsData),
+            data=bounds_update
+        )
+        self.log.info(f"Published data at {bar.ts_event}")

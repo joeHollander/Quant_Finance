@@ -19,10 +19,11 @@ from nautilus_trader.model.identifiers import InstrumentId
 from nautilus_trader.model.instruments import Instrument
 from nautilus_trader.model.orders.list import OrderList
 from nautilus_trader.trading.strategy import Strategy
+from nautilus_trader.config import LoggingConfig
 from nautilus_trader.model.data import Bar, BarSpecification, BarType
 from nautilus_trader.model.enums import OrderSide, PositionSide, TimeInForce
-from IntradayBreakoutStrategy import IntradayBreakout, IntradayTrendConfig, EmptyConfig, EmptyStrategy
-from IntradayModel import BoundsData, MoveData
+from IntradayBreakoutStrategy import IntradayBreakout, IntradayTrendConfig
+from IntradayModel import BoundsData, MoveData, BoundsBreakoutActor, BoundsBreakoutConfig
 from decimal import Decimal
 
 #loading data
@@ -83,8 +84,14 @@ flat = pd.DataFrame(
 
 flat.index = pd.DatetimeIndex(flat.index)
 
+# engine config
+engine_config =  BacktestEngineConfig(
+    trader_id = "BACKTESTER-1",
+    logging=LoggingConfig(log_level="INFO")
+)
+
 # engine
-engine = BacktestEngine()
+engine = BacktestEngine(config=engine_config)
 
 #venue
 SIM = Venue("SIM")
@@ -112,20 +119,23 @@ engine.add_data(bars)
 # strat config
 strat_config = IntradayTrendConfig(
     instrument_id=MSFT_SIM.id,
-    bounds_data_client_id = ClientId("BOUNDS"),
     bar_type=bartype,
     trade_size=Decimal("0.10")
-)
-
-# empty config
-empty_config = EmptyConfig(
-    instrument_id=MSFT_SIM.id,
-    bar_type=bartype
 )
 
 # adding strategy
 strategy = IntradayBreakout(strat_config)
 engine.add_strategy(strategy=strategy)
+
+# actor config
+actor_config = BoundsBreakoutConfig(
+    instrument_id=MSFT_SIM.id
+)
+
+# adding actor
+actor = BoundsBreakoutActor(actor_config)
+engine.add_actor(actor=actor)
+
 
 # run
 engine.run()
