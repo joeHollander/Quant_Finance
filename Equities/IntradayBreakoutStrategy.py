@@ -66,13 +66,13 @@ class EmptyStrategy(Strategy):
             self.log.info(f"Got bounds data at {data.ts_event}", color=LogColor.RED)
 
 # strategy
-class IntradayTrendConfig(StrategyConfig):
+class IntradayBreakoutConfig(StrategyConfig):
     instrument_id: InstrumentId
     bar_type: BarType
     trade_size: Decimal
 
 class IntradayBreakout(Strategy):
-    def __init__(self, config: IntradayTrendConfig):
+    def __init__(self, config: IntradayBreakoutConfig):
         super().__init__(config)
 
         # config
