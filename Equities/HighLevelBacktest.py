@@ -23,6 +23,7 @@ from nautilus_trader.trading.strategy import Strategy
 from nautilus_trader.config import LoggingConfig
 from nautilus_trader.model.data import Bar, BarSpecification, BarType
 from nautilus_trader.model.enums import OrderSide, PositionSide, TimeInForce
+from nautilus_trader.persistence.wranglers import BarDataWrangler
 from IntradayBreakoutStrategy import IntradayBreakout, IntradayBreakoutConfig
 from IntradayModel import BoundsData, MoveData, BoundsBreakoutActor, BoundsBreakoutConfig
 from nautilus_trader.backtest.node import BacktestNode, BacktestVenueConfig, BacktestDataConfig, BacktestRunConfig, BacktestEngineConfig
