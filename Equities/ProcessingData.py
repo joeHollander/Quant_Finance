@@ -61,8 +61,11 @@ flat = pd.DataFrame(
      index=msft_lagged.index
 )
 
-flat.index = pd.DatetimeIndex(flat.index)
+# adjusting for yfinance bar dates
+flat.index = pd.to_datetime(flat.index) + pd.to_timedelta(1, unit="hour")
+flat.index = pd.DatetimeIndex(flat.index.strftime("%Y-%m-%d %H:%M"))
 
 if __name__ == "__main__":
-    print(flat.index[0], flat.index[-1])
+    print(flat.index)
+
     
