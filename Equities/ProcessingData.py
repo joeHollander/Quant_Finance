@@ -66,6 +66,6 @@ flat.index = pd.to_datetime(flat.index) + pd.to_timedelta(1, unit="hour")
 flat.index = pd.DatetimeIndex(flat.index.strftime("%Y-%m-%d %H:%M"))
 
 if __name__ == "__main__":
-    print(flat.index)
+    print(flat.iloc[0])
 
     

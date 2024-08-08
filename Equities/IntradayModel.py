@@ -142,7 +142,9 @@ class BoundsBreakoutActor(Actor):
     def on_start(self):
         self.instrument = self.cache.instrument(self.symbol_id)
 
+        self.request_bars(self.bar_type)
         self.subscribe_bars(self.bar_type)
+
         self.subscribe_data(DataType(MoveData)) 
 
         self.log.info("Actor starting!!!", color=LogColor.RED)
@@ -167,7 +169,7 @@ class BoundsBreakoutActor(Actor):
         return time_from_start >= pd.Timedelta("14 days").nanoseconds
 
     def _find_open(self, bar: Bar):
-        date = datetime.fromtimestamp(bar.tts_event).date()
+        date = datetime.fromtimestamp(bar.ts_event).date()
         if date != self.day_open_date:
             self.day_open = bar.open
             self.day_open_date = bar.ts_event
