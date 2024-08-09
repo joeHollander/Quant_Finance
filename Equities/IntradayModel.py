@@ -93,12 +93,20 @@ class MoveData(Data):
         self.ts_init = ts_init
 
     @property
-    def ts_event(self):
+    def ts_event(self) -> int:
         return self._ts_event
+    
+    @ts_event.setter
+    def ts_event(self, value):
+        self._ts_event = value 
 
     @property
-    def ts_init(self):
-        return self._ts_init   
+    def ts_init(self) -> int:
+        return self._ts_init
+    
+    @ts_init.setter
+    def ts_init(self, value):
+        self._ts_init = value  
 
     def to_dict(self):
         return {
@@ -169,19 +177,23 @@ class BoundsBreakoutActor(Actor):
         return time_from_start >= pd.Timedelta("14 days").nanoseconds
 
     def _find_open(self, bar: Bar):
-        date = datetime.fromtimestamp(bar.ts_event).date()
+        date = datetime.fromtimestamp(bar.ts_event // 1e9).date()
         if date != self.day_open_date:
             self.day_open = bar.open
             self.day_open_date = bar.ts_event
 
     def _find_move(self, bar: Bar):
+        if not bar:
+            return
+        
         self._find_open(bar)
         if self.day_open is None:
             return
         
         move = np.abs(bar.close/self.day_open - 1)
 
-        move_update = MoveData(self.symbol_id.value, move, ts_event=bar.ts_event)
+        move_update = MoveData(self.symbol_id.value, move, ts_event=bar.ts_event, ts_init=bar.ts_init)
+
         self.publish_data(
             data_type=DataType(MoveData), 
             data=move_update

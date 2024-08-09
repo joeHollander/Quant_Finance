@@ -27,7 +27,7 @@ from nautilus_trader.persistence.wranglers import BarDataWrangler
 from IntradayBreakoutStrategy import IntradayBreakout, IntradayBreakoutConfig
 from IntradayModel import BoundsData, MoveData, BoundsBreakoutActor, BoundsBreakoutConfig
 from nautilus_trader.backtest.node import BacktestNode, BacktestVenueConfig, BacktestDataConfig, BacktestRunConfig, BacktestEngineConfig
-from nautilus_trader.config import ImportableStrategyConfig
+from nautilus_trader.config import ImportableStrategyConfig,  ImportableActorConfig
 from nautilus_trader.persistence.catalog import ParquetDataCatalog
 from nautilus_trader.core.datetime import dt_to_unix_nanos
 
@@ -89,22 +89,29 @@ data_configs = [
     ),
 ]
 
+# actor
+actor = ImportableActorConfig(
+        actor_path="IntradayModel:BoundsBreakoutActor",
+        config_path="IntradayModel:BoundsBreakoutConfig",
+        config=dict(
+            instrument_id=instrument.id
+        ),
+    )
+
 # strategy 
-strategies = [
-    ImportableStrategyConfig(
+strategy = ImportableStrategyConfig(
         strategy_path="IntradayBreakoutStrategy:IntradayBreakout",
         config_path="IntradayBreakoutStrategy:IntradayBreakoutConfig",
         config=dict(
             instrument_id=instrument.id,
             bar_type=bartype,
-            trade_size=Decimal(1000),
+            trade_size=Decimal(10),
         ),
-    ),
-]
+    )
 
 # backtest config
 config = BacktestRunConfig(
-    engine=BacktestEngineConfig(strategies=strategies),
+    engine=BacktestEngineConfig(strategies=[strategy], actors=[actor]),
     data=data_configs,
     venues=venue_configs,
 )
@@ -112,6 +119,6 @@ config = BacktestRunConfig(
 node = BacktestNode(configs=[config])
 
 results = node.run()
-results
+#results
 
 

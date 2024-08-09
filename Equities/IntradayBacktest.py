@@ -60,6 +60,15 @@ bars = wrangler.process(flat.loc[:, "open":"close"])
 # adding data
 engine.add_data(bars)
 
+# actor config
+actor_config = BoundsBreakoutConfig(
+    instrument_id=MSFT_SIM.id
+)
+
+# adding actor
+actor = BoundsBreakoutActor(actor_config)
+engine.add_actor(actor=actor)
+
 # strat config
 strat_config = IntradayBreakoutConfig(
     instrument_id=MSFT_SIM.id,
@@ -70,15 +79,6 @@ strat_config = IntradayBreakoutConfig(
 # adding strategy
 strategy = IntradayBreakout(strat_config)
 engine.add_strategy(strategy=strategy)
-
-# actor config
-actor_config = BoundsBreakoutConfig(
-    instrument_id=MSFT_SIM.id
-)
-
-# adding actor
-actor = BoundsBreakoutActor(actor_config)
-engine.add_actor(actor=actor)
 
 
 # run
