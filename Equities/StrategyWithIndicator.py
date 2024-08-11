@@ -27,14 +27,16 @@ from IntradayIndicator import BoundsIndicator
 class BoundsBreakoutConfig(StrategyConfig):
     instrument_id: InstrumentId
     bar_type: BarType
+    trade_size: Decimal = Decimal(10)
 
 class BoundsBreakout(Strategy):
     def __init__(self, config: BoundsBreakoutConfig):
 
-        super.__init__(config)
+        super().__init__(config)
 
         self.instrument_id = config.instrument_id
         self.bar_type = config.bar_type
+        self.trade_size = Decimal(config.trade_size)
 
         self.bounds_indicator = BoundsIndicator()
 
@@ -54,6 +56,9 @@ class BoundsBreakout(Strategy):
             return
         
         self.log.info(repr(bar), LogColor.CYAN)
+
+        if self.bounds_indicator.upper_bound == 0 or self.bounds_indicator.lower_bound == 0:
+            return
 
         # long 
         if bar.close >= self.bounds_indicator.upper_bound:
