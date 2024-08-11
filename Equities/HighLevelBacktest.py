@@ -30,6 +30,8 @@ from nautilus_trader.backtest.node import BacktestNode, BacktestVenueConfig, Bac
 from nautilus_trader.config import ImportableStrategyConfig,  ImportableActorConfig
 from nautilus_trader.persistence.catalog import ParquetDataCatalog
 from nautilus_trader.core.datetime import dt_to_unix_nanos
+import IntradayModel
+import IntradayBreakoutStrategy
 
 # other file related imports
 from pathlib import Path
@@ -64,22 +66,25 @@ catalog.write_data(bars)
 
 instrument = catalog.instruments()[0]
 
+
 # venue config
-venue_configs = [
+venues = [
     BacktestVenueConfig(
         name="SIM",
-        oms_type="HEDGING",
-        account_type="MARGIN",
+        oms_type="NETTING",
+        account_type="CASH",
         base_currency="USD",
         starting_balances=["1_000_000 USD"],
     ),
 ]
 
+
+
 start = dt_to_unix_nanos(pd.Timestamp("2023-01-24", tz="EST"))
 end =  dt_to_unix_nanos(pd.Timestamp("2023-12-29", tz="EST"))
 
 # data config
-data_configs = [
+data = [
     BacktestDataConfig(
         catalog_path=str(CATALOG_PATH),
         data_cls=Bar,
@@ -109,16 +114,18 @@ strategy = ImportableStrategyConfig(
         ),
     )
 
-# backtest config
-config = BacktestRunConfig(
-    engine=BacktestEngineConfig(strategies=[strategy], actors=[actor]),
-    data=data_configs,
-    venues=venue_configs,
-)
+# create engine config
+engine = BacktestEngineConfig(
+        trader_id="BACKTESTER-001",
+        strategies=[strategy],
+        actors=[actor])
 
-node = BacktestNode(configs=[config])
+
+# backtest config
+run_config = BacktestRunConfig(engine=engine, venues=venues, data=data )
+node = BacktestNode(configs=[run_config])
 
 results = node.run()
-#results
+print(results)
 
 

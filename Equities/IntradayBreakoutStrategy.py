@@ -83,8 +83,6 @@ class IntradayBreakout(Strategy):
         self.bar_spec = BarSpecification.from_str("1-HOUR-LAST")
         self._position_id: int = 0
 
-        # actor
-        self.bounds_actor = BoundsBreakoutActor(BoundsBreakoutConfig(instrument_id=self.instrument_id))
 
     def on_start(self):
         # instruments and save in cache
@@ -98,6 +96,7 @@ class IntradayBreakout(Strategy):
         )
 
         # starting actor
+        self.bounds_actor = BoundsBreakoutActor(BoundsBreakoutConfig(instrument_id=self.instrument_id))
         self.bounds_actor.start()
 
         self.log.info("!!!!STARTING!!!!", color=LogColor.RED)

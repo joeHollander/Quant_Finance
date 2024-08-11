@@ -143,12 +143,11 @@ class BoundsBreakoutActor(Actor):
         self.ma_length = config.moving_average_length
         self.bar_type = make_bar_type(instrument_id=self.symbol_id, bar_spec=self.bar_spec)
         self.day_open = None
-        self.day_open_date = None
+        self.day_open_date = None   
 
     register_serializable_type(BoundsData, BoundsData.to_dict, BoundsData.from_dict)
 
     def on_start(self):
-        self.instrument = self.cache.instrument(self.symbol_id)
 
         self.request_bars(self.bar_type)
         self.subscribe_bars(self.bar_type)
