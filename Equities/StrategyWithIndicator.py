@@ -106,8 +106,9 @@ class BoundsBreakout(Strategy):
         self.close_all_positions(self.instrument_id)
 
         self.unsubscribe_bars(self.bar_type)
+        bounds = [[float(a), float(b)] for a, b in zip(self.bounds_indicator.upper_bounds, self.bounds_indicator.lower_bounds)]
+        print(bounds[-5:])
 
 
 
-        
 

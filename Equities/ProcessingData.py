@@ -66,6 +66,9 @@ flat.index = pd.to_datetime(flat.index) + pd.to_timedelta(1, unit="hour")
 flat.index = pd.DatetimeIndex(flat.index.strftime("%Y-%m-%d %H:%M"))
 
 if __name__ == "__main__":
-    print(flat.iloc[0])
-
-    
+    print(flat.tail())
+# [[375.6059423567137, 374.31405764328633],
+#  [376.0431690973883, 374.7168309026118], 
+#  [376.3488729054127, 375.2711270945873], 
+#  [376.6479228682088, 374.9920771317912], 
+#  [376.61436939306833, 375.1856306069317]]     

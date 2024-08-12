@@ -116,4 +116,4 @@ run_config = BacktestRunConfig(engine=engine, venues=venues, data=data )
 node = BacktestNode(configs=[run_config])
 
 results = node.run()
-print(results)
+

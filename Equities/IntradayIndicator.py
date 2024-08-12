@@ -14,6 +14,8 @@ class BoundsIndicator(Indicator):
         self.day_open = 0
         self.day_open_date = None
         self.moves = []
+        self.upper_bounds = []
+        self.lower_bounds = []
         self.upper_bound = 0
         self.lower_bound = 0
 
@@ -56,6 +58,9 @@ class BoundsIndicator(Indicator):
         
         self.upper_bound = self.day_open * (1 + move_avg)
         self.lower_bound = self.day_open * (1 - move_avg)
+
+        self.upper_bounds.append(self.upper_bound)
+        self.lower_bounds.append(self.lower_bound)
 
         #self.log.info("Found bound", color=LogColor.CYAN)
     
