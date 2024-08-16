@@ -27,7 +27,7 @@ from nautilus_trader.persistence.wranglers import BarDataWrangler
 from IntradayBreakoutStrategy import IntradayBreakout, IntradayBreakoutConfig
 from IntradayModel import BoundsData, MoveData, BoundsBreakoutActor, BoundsBreakoutConfig
 from nautilus_trader.backtest.node import BacktestNode, BacktestVenueConfig, BacktestDataConfig, BacktestRunConfig, BacktestEngineConfig
-from nautilus_trader.config import ImportableStrategyConfig,  ImportableActorConfig
+from nautilus_trader.config import ImportableStrategyConfig,  ImportableActorConfig, StreamingConfig
 from nautilus_trader.persistence.catalog import ParquetDataCatalog
 from nautilus_trader.core.datetime import dt_to_unix_nanos
 import IntradayModel
@@ -45,7 +45,7 @@ from ProcessingData import flat
 MSFT_SIM = TestInstrumentProvider.equity(symbol="MSFT", venue="SIM")
 
 # processing data
-bartype = BarType.from_str("MSFT.SIM-1-HOUR-LAST-EXTERNAL")
+bartype = BarType.from_str("MSFT.SIM-1-HOUR-LAST-INTERNAL")
 
 wrangler = BarDataWrangler(bar_type=bartype, instrument=MSFT_SIM)
 bars = wrangler.process(flat.loc[:, "open":"close"])
@@ -102,6 +102,13 @@ actor = ImportableActorConfig(
             instrument_id=instrument.id
         ),
     )
+
+# streaming
+streaming = StreamingConfig(
+    catalog_path=CATALOG_PATH,
+    fs_protocol="file",
+    include_types=[BoundsData, MoveData]
+)
 
 # strategy 
 strategy = ImportableStrategyConfig(
