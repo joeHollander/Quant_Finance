@@ -99,7 +99,8 @@ actor = ImportableActorConfig(
         actor_path="IntradayModel:BoundsBreakoutActor",
         config_path="IntradayModel:BoundsBreakoutConfig",
         config=dict(
-            instrument_id=instrument.id
+            instrument_id=instrument.id,
+            bar_type=bartype
         ),
     )
 

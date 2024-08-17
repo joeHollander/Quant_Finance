@@ -110,7 +110,7 @@ class MoveData(Data):
 
     def to_dict(self):
         return {
-            "instrument_id": self.instrument_id.value,
+            "instrument_id": self.instrument_id,
             "abs_move": self.abs_move,
             "ts_event": self._ts_event,
             "ts_init": self._ts_init
@@ -131,7 +131,7 @@ class MoveData(Data):
 
 class BoundsBreakoutConfig(ActorConfig):
     instrument_id: InstrumentId
-    bar_spec: str = "1-HOUR-LAST"
+    bar_type: BarType
     moving_average_length: int = 14
 
 class BoundsBreakoutActor(Actor):
@@ -139,9 +139,8 @@ class BoundsBreakoutActor(Actor):
         super().__init__(config=config)
 
         self.symbol_id = config.instrument_id
-        self.bar_spec = BarSpecification.from_str(self.config.bar_spec)
         self.ma_length = config.moving_average_length
-        self.bar_type = make_bar_type(instrument_id=self.symbol_id, bar_spec=self.bar_spec)
+        self.bar_type = config.bar_type 
         self.day_open = None
         self.day_open_date = None   
 

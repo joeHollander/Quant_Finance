@@ -62,7 +62,8 @@ engine.add_data(bars)
 
 # actor config
 actor_config = BoundsBreakoutConfig(
-    instrument_id=MSFT_SIM.id
+    instrument_id=MSFT_SIM.id,
+    bar_type=bartype
 )
 
 # adding actor

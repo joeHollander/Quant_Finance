@@ -56,7 +56,7 @@ class EmptyStrategy(Strategy):
 
     def on_start(self):
         self.instrument = self.cache.instrument(self.instrument_id)
-        self.request_bars(make_bar_type(self.instrument_id, self.bar_spec))
+        self.request_bars(self.bar_type)
         self.subscribe_data(data_type=DataType(BoundsData))
 
     def on_bar(self, bar: Bar):
@@ -89,14 +89,14 @@ class IntradayBreakout(Strategy):
         self.instrument = self.cache.instrument(self.instrument_id)
 
         # subscribe to data
-        self.request_bars(make_bar_type(instrument_id=self.instrument_id, bar_spec=self.bar_spec))
+        self.request_bars(self.bar_type)
         self.subscribe_bars(self.bar_type)
         self.subscribe_data(
             data_type=DataType(BoundsData)
         )
 
         # starting actor
-        self.bounds_actor = BoundsBreakoutActor(BoundsBreakoutConfig(instrument_id=self.instrument_id))
+        self.bounds_actor = BoundsBreakoutActor(BoundsBreakoutConfig(instrument_id=self.instrument_id, bar_type=self.bar_type))
         self.bounds_actor.start()
 
         self.log.info("!!!!STARTING!!!!", color=LogColor.RED)
@@ -119,7 +119,7 @@ class IntradayBreakout(Strategy):
     def _check_for_entry(self, bar: Bar):
         if bar.bar_type.instrument_id == self.instrument_id:
             # Send in orders
-            ohlc_bar = self.cache.bar(make_bar_type(instrument_id=self.instrument_id, bar_spec=self.bar_spec))
+            ohlc_bar = self.cache.bar(self.bar_type)
             if not ohlc_bar:
                 return
 
@@ -152,7 +152,7 @@ class IntradayBreakout(Strategy):
         return max(0, max_quantity - position_quantity)
     
     def _check_for_exit(self, timer=None, bar: Optional[Bar] = None):
-        ohlc_bar = self.cache.bar(make_bar_type(instrument_id=self.instrument_id, bar_spec=self.bar_spec))
+        ohlc_bar = self.cache.bar(self.bar_type)
         if not ohlc_bar:
             return
 
@@ -162,7 +162,7 @@ class IntradayBreakout(Strategy):
         if not self.cache.positions(strategy_id=self.id):
             return
         
-        ohlc_bar = self.cache.bar(make_bar_type(self.instrument_id, bar_spec=self.bar_spec))
+        ohlc_bar = self.cache.bar(self.bar_type)
         if not ohlc_bar:
             return
 
