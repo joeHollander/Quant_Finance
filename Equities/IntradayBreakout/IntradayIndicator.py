@@ -6,6 +6,7 @@ from IntradayModel import MoveData
 from datetime import datetime
 import numpy as np
 import pandas as pd
+from ProcessingData import flat
 
 
 class BoundsIndicator(Indicator):
@@ -18,6 +19,8 @@ class BoundsIndicator(Indicator):
         self.lower_bounds = []
         self.upper_bound = 0
         self.lower_bound = 0
+        self.flat = flat
+        self.i = 0
 
     def handle_bar(self, bar: Bar):
         self._find_move(bar)
@@ -56,8 +59,13 @@ class BoundsIndicator(Indicator):
     def _find_bounds(self, bar: Bar):
         move_avg = np.average(self.moves[-64::7])
         
-        self.upper_bound = self.day_open * (1 + move_avg)
-        self.lower_bound = self.day_open * (1 - move_avg)
+        self.upper_bound = self.flat.loc[self.flat.index[self.i], "upper_bound"]
+        self.lower_bound = self.flat.loc[self.flat.index[self.i], "lower_bound"]
+
+        self.i += 1
+
+        #self.upper_bound = self.day_open * (1 + move_avg)
+        #self.lower_bound = self.day_open * (1 - move_avg)
 
         self.upper_bounds.append(self.upper_bound)
         self.lower_bounds.append(self.lower_bound)
