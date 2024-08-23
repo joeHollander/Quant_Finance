@@ -45,7 +45,7 @@ from ProcessingData import flat
 MSFT_SIM = TestInstrumentProvider.equity(symbol="MSFT", venue="SIM")
 
 # processing data
-bartype = BarType.from_str("MSFT.SIM-1-HOUR-LAST-INTERNAL")
+bartype = BarType.from_str("MSFT.SIM-1-HOUR-LAST-EXTERNAL")
 
 wrangler = BarDataWrangler(bar_type=bartype, instrument=MSFT_SIM)
 bars = wrangler.process(flat.loc[:, "open":"close"])

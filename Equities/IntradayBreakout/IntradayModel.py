@@ -127,7 +127,8 @@ class MoveData(Data):
 
     @classmethod
     def from_bytes(cls, data: bytes):
-        return cls.from_dict(msgspec.msgpack.decode(data))
+        if not Data: 
+            return cls.from_dict(msgspec.msgpack.decode(data))
 
 class BoundsBreakoutConfig(ActorConfig):
     instrument_id: InstrumentId
