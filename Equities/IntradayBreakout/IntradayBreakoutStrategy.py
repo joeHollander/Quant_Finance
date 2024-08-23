@@ -52,7 +52,6 @@ class EmptyStrategy(Strategy):
 
         self.instrument_id = config.instrument_id
         self.bar_type = config.bar_type
-        self.bar_spec = BarSpecification.from_str("1-HOUR-LAST")
 
     def on_start(self):
         self.instrument = self.cache.instrument(self.instrument_id)
@@ -80,7 +79,6 @@ class IntradayBreakout(Strategy):
         self.instrument_id = config.instrument_id
         self.bar_type = config.bar_type
         self.trade_size = config.trade_size
-        self.bar_spec = BarSpecification.from_str("1-HOUR-LAST")
         self._position_id: int = 0
 
 
