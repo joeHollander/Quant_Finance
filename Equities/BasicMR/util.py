@@ -9,7 +9,12 @@ import matplotlib.pyplot as plt
 from typing import Literal
 
 # function to convert yfinance bar data to timeseries
-def yf_to_timeseries(df, periods_per_day=7, exchange: Literal["NYSE", "NASDAQ"] = "NYSE"):
+def yf_to_timeseries(df: pd.DataFrame, periods_per_day: int, exchange: Literal["NYSE", "NASDAQ"] = "NYSE"):
+    ppd = periods_per_day
+
+    if df is None:
+        print("df is None. Most likely because of an invalid timeframe for yfinance.")
+
     # adjusting weird yf format 
     df.index = pd.DatetimeIndex(df.index.strftime("%Y-%m-%d %H:%M"))
 
@@ -28,26 +33,27 @@ def yf_to_timeseries(df, periods_per_day=7, exchange: Literal["NYSE", "NASDAQ"] 
     oc = np.zeros((len(df) + day_diff, ))
 
     # open values
-    oc[::8] = df.loc[::7, "Open"]
+    oc[::ppd+1] = df.loc[::ppd, "Open"]
     # close values
     oc_idx = np.ones((len(oc), ), dtype=bool)
-    oc_idx[::8] = False
+    oc_idx[::ppd+1] = False
     oc[oc_idx] = df.loc[:, "Adj Close"].values
 
     # creating index for dates
     idx = np.ones((len(oc), ), dtype=bool)
-    idx[7::8] = False
+    idx[ppd::ppd+1] = False
     dates = np.zeros(oc.shape, dtype=datetime)
     dates[idx] = df.index
     # setting index for end of dates
     eod_index = [x.date() for x in df.index]
-    dates[~idx] = [datetime.combine(date, time(hour=16)) for date in eod_index[6::7]]
+    dates[~idx] = [datetime.combine(date, time(hour=16)) for date in eod_index[ppd-1::ppd]]
 
     # create and return new df
     new_df = pd.DataFrame(data=oc, index=dates, columns=["Price"])
     return new_df
 
 if __name__ == "__main__":
-    aapl = yf.download("AAPL", "2024-01-01", "2024-01-31", interval="1h")
-    aapl = yf_to_timeseries(aapl)
+    aapl = yf.download("AAPL", "2024-01-01", "2024-03-31", interval="1h")
+    aapl = yf_to_timeseries(aapl, 7, exchange="NASDAQ")
     print(aapl.head(10))
+
