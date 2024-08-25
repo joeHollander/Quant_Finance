@@ -2,7 +2,7 @@
 from nautilus_trader.backtest.engine import BacktestEngine, BacktestEngineConfig
 from nautilus_trader.trading.strategy import Strategy
 from nautilus_trader.model.currencies import USD
-from nautilus_trader.model.data import BarType, DataType, Bar, BarSpecification
+from nautilus_trader.model.data import BarType, DataType, Bar, BarSpecification, TradeTick
 from nautilus_trader.model.enums import AccountType, OrderSide, PositionSide, TimeInForce, OmsType, AggregationSource
 from nautilus_trader.common.enums import LogColor
 from nautilus_trader.model.identifiers import Venue, InstrumentId, PositionId, ClientId
@@ -32,6 +32,7 @@ from nautilus_trader.model.events.position import (
 import pandas as pd
 import numpy as np
 from datetime import datetime
+from BasicMRData import SingleBar
 
 # make timestamps readable
 def human_readable_duration(ns: float):
@@ -66,22 +67,32 @@ class BasicMR(Strategy):
 
     def on_start(self):
         # subscribe to data
-        self.subscribe_bars(self.bar_type)
+        self.subscribe_trade_ticks(self.instrument_id)
+        self.subscribe_data(DataType(SingleBar))
         
         self.log.info("STARTING", color=LogColor.GREEN)
 
+    def on_tick(self, trade_tick: TradeTick):
+        self.log.info(f"Tick: {trade_tick.price, datetime.fromtimestamp(trade_tick.ts_event / 1e9).strftime("%m/%d/%Y, %H:%M:%S")}", color=LogColor.BLUE)
+        self.log.info("Got Tick", color=LogColor.BLUE)
+
     def on_bar(self, bar: Bar):
-        self.log.info(f"{bar.open, datetime.fromtimestamp(bar.ts_event / 1e9).strftime("%m/%d/%Y, %H:%M:%S")}", color=LogColor.RED)
-        self.log.info(f"{bar.close, datetime.fromtimestamp(bar.ts_event / 1e9).strftime("%m/%d/%Y, %H:%M:%S")}", color=LogColor.BLUE)
+        self.log.info(f"Bar: {bar.price, datetime.fromtimestamp(bar.ts_event / 1e9).strftime('%m/%d/%Y, %H:%M:%S')}", color=LogColor.GREEN)
+        self.log.info("Got Bar", color=LogColor.GREEN)
 
     def on_event(self, event):
         if isinstance(event, (PositionOpened, PositionChanged)):
             position = self.cache.position(event.position_id)
             self._log.info(f"{position}", color=LogColor.YELLOW)
 
+    def on_data(self, data: Data):
+        self.log.info("Got Data", color=LogColor.GREEN)
+        if isinstance(data, SingleBar):
+            self.log.info(f"Data: {data.price}", color=LogColor.GREEN)  
+
     def on_stop(self):
         # unsubscribe from data
-        self.unsubscribe_bars(self.bar_type)
+        self.unsubscribe_trade_ticks(self.instrument_id)
 
         self.log.info("STOPPING", color=LogColor.RED)
 

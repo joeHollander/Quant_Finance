@@ -13,7 +13,7 @@ from nautilus_trader.model.currencies import USD
 from nautilus_trader.model.enums import AccountType, OmsType
 from nautilus_trader.model.identifiers import Venue, ClientId
 from nautilus_trader.model.objects import Money
-from nautilus_trader.persistence.wranglers import BarDataWrangler
+from nautilus_trader.persistence.wranglers import BarDataWrangler, TradeTickDataWrangler
 from nautilus_trader.test_kit.providers import TestInstrumentProvider, TestDataProvider
 from nautilus_trader.config import StrategyConfig
 from nautilus_trader.model.identifiers import InstrumentId
@@ -21,7 +21,7 @@ from nautilus_trader.model.instruments import Instrument
 from nautilus_trader.model.orders.list import OrderList
 from nautilus_trader.trading.strategy import Strategy
 from nautilus_trader.config import LoggingConfig
-from nautilus_trader.model.data import Bar, BarSpecification, BarType
+from nautilus_trader.model.data import Bar, BarSpecification, BarType, TradeTick
 from nautilus_trader.model.enums import OrderSide, PositionSide, TimeInForce
 from nautilus_trader.persistence.wranglers import BarDataWrangler
 from BasicMRStrategy import BasicMR, BasicMRConfig
@@ -30,11 +30,16 @@ from nautilus_trader.config import ImportableStrategyConfig,  ImportableActorCon
 from nautilus_trader.persistence.catalog import ParquetDataCatalog
 from nautilus_trader.model.enums import AggregationSource
 from nautilus_trader.core.datetime import dt_to_unix_nanos
+from nautilus_trader.serialization.base import register_serializable_type
+from nautilus_trader.serialization.arrow.serializer import register_arrow
+from BasicMRData import SingleBar
+from util import yf_to_timeseries
 
 # other file related imports
 from pathlib import Path
 import fsspec 
 import shutil
+from itertools import repeat
 
 
 # creating instrument
@@ -45,13 +50,21 @@ start_str = "2023-01-01"
 end_str = "2023-01-31"
 
 msft_df = yf.download("MSFT", start=start_str, end=end_str, interval="1h")
+msft_ts = yf_to_timeseries(msft_df, 7)
+
+ts_event = msft_ts.index.view(np.uint64)
+ts_init = ts_event.copy()
 
 # processing data
-barspec = BarSpecification.from_str("1-HOUR-LAST")
-bartype = BarType(instrument_id=MSFT_SIM.id, bar_spec=barspec, aggregation_source=AggregationSource.EXTERNAL)
+bartype = BarType.from_str("MSFT.SIM-1-HOUR-LAST-EXTERNAL")
+instrument_id = InstrumentId.from_str("MSFT.SIM")
 
-wrangler = BarDataWrangler(bar_type=bartype, instrument=MSFT_SIM)
-bars = wrangler.process(msft_df)
+msft_ts.rename(columns={'Price': 'price'}, inplace=True)
+msft_ts["quantity"] = np.ones(len(msft_ts))
+msft_ts["trade_id"] = np.arange(len(msft_ts))
+
+wrangler = TradeTickDataWrangler(instrument=MSFT_SIM)
+ticks = wrangler.process(data=msft_ts, ts_init_delta=0)
 
 # create path and clear if it exists
 CATALOG_PATH = Path.cwd() / "Data" / "MSFT2023catalog"
@@ -65,7 +78,7 @@ catalog = ParquetDataCatalog(CATALOG_PATH)
 
 # write to catalog
 catalog.write_data([MSFT_SIM])
-catalog.write_data(bars)
+catalog.write_data(ticks)
 
 instrument = catalog.instruments()[0]
 
@@ -88,7 +101,7 @@ end =  dt_to_unix_nanos(pd.Timestamp(end_str, tz="EST"))
 data = [
     BacktestDataConfig(
         catalog_path=str(CATALOG_PATH),
-        data_cls=Bar,
+        data_cls=TradeTick,
         instrument_id=instrument.id,
         start_time=start,
         end_time=end,
@@ -115,7 +128,7 @@ engine = BacktestEngineConfig(
 run_config = BacktestRunConfig(engine=engine, venues=venues, data=data)
 node = BacktestNode(configs=[run_config])
 
-results = node.run()
-print(results)
+#results = node.run()
+
 
 
