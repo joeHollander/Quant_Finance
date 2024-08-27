@@ -86,7 +86,7 @@ instrument = catalog.instruments()[0]
 venues = [
     BacktestVenueConfig(
         name="SIM",
-        oms_type="NETTING",
+        oms_type="HEDGING",
         account_type="CASH",
         base_currency="USD",
         starting_balances=["1_000_000 USD"],
@@ -119,16 +119,18 @@ strategy = ImportableStrategyConfig(
     )
 
 # create engine config
-engine = BacktestEngineConfig(
-        trader_id="BACKTESTER-001",
-        strategies=[strategy])
+config = BacktestRunConfig(
+    engine=BacktestEngineConfig(strategies=[strategy]),
+    data=data,
+    venues=venues
+)
 
 
 # backtest config
-run_config = BacktestRunConfig(engine=engine, venues=venues, data=data)
-node = BacktestNode(configs=[run_config])
+node = BacktestNode(configs=[config])
 
-#results = node.run()
+results = node.run()
+print(results)
 
 
 

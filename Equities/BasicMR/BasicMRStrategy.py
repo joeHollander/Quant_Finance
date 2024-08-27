@@ -33,6 +33,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 from BasicMRData import SingleBar
+import matplotlib.pyplot as plt
 
 # make timestamps readable
 def human_readable_duration(ns: float):
@@ -62,23 +63,16 @@ class BasicMR(Strategy):
         self.bar_type = config.bar_type
         self.trade_size = config.trade_size
 
-        #self.instrument = self.cache.instrument(self.instrument_id)
-        #self.position = self.cache.position(self.instrument_id)
-
     def on_start(self):
         # subscribe to data
         self.subscribe_trade_ticks(self.instrument_id)
-        self.subscribe_data(DataType(SingleBar))
         
         self.log.info("STARTING", color=LogColor.GREEN)
 
-    def on_tick(self, trade_tick: TradeTick):
-        self.log.info(f"Tick: {trade_tick.price, datetime.fromtimestamp(trade_tick.ts_event / 1e9).strftime("%m/%d/%Y, %H:%M:%S")}", color=LogColor.BLUE)
+    def on_trade_tick(self, trade_tick: TradeTick):
+        self.log.info(f"Tick: {trade_tick.price, datetime.fromtimestamp(trade_tick.ts_event / 1e9).strftime('%m/%d/%Y, %H:%M:%S')}", color=LogColor.BLUE)
+        print("GOT TICK")
         self.log.info("Got Tick", color=LogColor.BLUE)
-
-    def on_bar(self, bar: Bar):
-        self.log.info(f"Bar: {bar.price, datetime.fromtimestamp(bar.ts_event / 1e9).strftime('%m/%d/%Y, %H:%M:%S')}", color=LogColor.GREEN)
-        self.log.info("Got Bar", color=LogColor.GREEN)
 
     def on_event(self, event):
         if isinstance(event, (PositionOpened, PositionChanged)):
@@ -93,7 +87,6 @@ class BasicMR(Strategy):
     def on_stop(self):
         # unsubscribe from data
         self.unsubscribe_trade_ticks(self.instrument_id)
-
         self.log.info("STOPPING", color=LogColor.RED)
 
 
