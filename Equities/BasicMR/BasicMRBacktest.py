@@ -114,7 +114,7 @@ strategy = ImportableStrategyConfig(
         config=dict(
             instrument_id=instrument.id,
             bar_type=bartype,
-            trade_size=Decimal(10_000),
+            trade_size=Decimal(1),
         ),
     )
 
