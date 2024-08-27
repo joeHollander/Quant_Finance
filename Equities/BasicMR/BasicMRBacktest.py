@@ -32,7 +32,7 @@ from nautilus_trader.model.enums import AggregationSource
 from nautilus_trader.core.datetime import dt_to_unix_nanos
 from nautilus_trader.serialization.base import register_serializable_type
 from nautilus_trader.serialization.arrow.serializer import register_arrow
-from BasicMRData import SingleBar
+#from BasicMRData import SingleBar
 from util import yf_to_timeseries
 
 # other file related imports
@@ -49,8 +49,8 @@ MSFT_SIM = TestInstrumentProvider.equity(symbol="MSFT", venue="SIM")
 start_str = "2023-01-01"
 end_str = "2023-01-31"
 
-msft_df = yf.download("MSFT", start=start_str, end=end_str, interval="1h")
-msft_ts = yf_to_timeseries(msft_df, 7)
+msft_df = yf.download("MSFT", start=start_str, end=end_str, interval="1d")
+msft_ts = yf_to_timeseries(msft_df, 1).tz_localize("America/New_York")
 
 ts_event = msft_ts.index.view(np.uint64)
 ts_init = ts_event.copy()
@@ -94,8 +94,8 @@ venues = [
 ]
 
 
-start = dt_to_unix_nanos(pd.Timestamp(start_str, tz="EST"))
-end =  dt_to_unix_nanos(pd.Timestamp(end_str, tz="EST"))
+start = dt_to_unix_nanos(pd.Timestamp(start_str, tz="America/New_York"))
+end =  dt_to_unix_nanos(pd.Timestamp(end_str, tz="America/New_York"))
 
 # data config
 data = [
@@ -129,8 +129,4 @@ config = BacktestRunConfig(
 # backtest config
 node = BacktestNode(configs=[config])
 
-results = node.run()
-print(results)
-
-
-
+results = node.run() 

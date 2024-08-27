@@ -33,7 +33,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 from BasicMRData import SingleBar
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 # make timestamps readable
 def human_readable_duration(ns: float):
