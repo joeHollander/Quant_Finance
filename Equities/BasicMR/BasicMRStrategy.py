@@ -67,6 +67,7 @@ class BasicMR(Strategy):
         self.recent_close = None
         self.val = None
         self.position: Position = None
+        self.avg_quantity = None 
 
 
     def on_start(self):
@@ -76,14 +77,19 @@ class BasicMR(Strategy):
         self.log.info("STARTING", color=LogColor.GREEN)
 
     def check_for_entry(self):
-        if self.val >= 0.01: 
+        if not self.avg_quantity:
+            return 
+        
+        v = self.cache.trade_ticks(self.instrument_id)[1].size
+
+        if self.val >= 0.01 and self.val <= 0.02 and v < self.avg_quantity: 
             order = self.order_factory.market(
                 instrument_id=self.instrument_id,
                 order_side=OrderSide.BUY,
                 quantity=Quantity.from_int(self.trade_size),
             )
             self.submit_order(order)
-        elif self.val <= -0.01:
+        elif self.val <= -0.01 and self.val >= -0.02 and v < self.avg_quantity:
             order = self.order_factory.market(
                 instrument_id=self.instrument_id,
                 order_side=OrderSide.SELL,
@@ -99,7 +105,7 @@ class BasicMR(Strategy):
 
 
     def on_trade_tick(self, trade_tick: TradeTick):
-        self.log.info(f"Tick: {trade_tick.price, datetime.fromtimestamp(trade_tick.ts_event / 1e9).strftime('%m/%d/%Y, %H:%M:%S')}", color=LogColor.BLUE)
+        #self.log.info(f"Tick: {trade_tick.price, datetime.fromtimestamp(trade_tick.ts_event / 1e9).strftime('%m/%d/%Y, %H:%M:%S')}", color=LogColor.BLUE)
         date = datetime.fromtimestamp(trade_tick.ts_event / 1e9).date()
 
         if self.recent_date is None:
@@ -120,11 +126,15 @@ class BasicMR(Strategy):
         if not self.val:
             return
         
+        if len(self.cache.trade_ticks(self.instrument_id)) >= 10:
+            last_quantities = [x.size for x in self.cache.trade_ticks(self.instrument_id)[:10]]
+            self.avg_quantity = float(sum(last_quantities)) / (len(last_quantities) / 2)
+
 
     def on_event(self, event):
         if isinstance(event, (PositionOpened, PositionChanged)):
             self.position = self.cache.position(event.position_id)
-            self._log.info(f"{self.position}", color=LogColor.YELLOW)
+            #self._log.info(f"{self.position}", color=LogColor.YELLOW)
 
     def on_data(self, data: Data):
         self.log.info("Got Data", color=LogColor.GREEN)

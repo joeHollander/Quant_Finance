@@ -29,19 +29,20 @@ def yf_to_timeseries(df: pd.DataFrame, periods_per_day: int, exchange: Literal["
     day_diff = np.busday_count(start.date(), end.date() + pd.Timedelta(days=1), holidays=holidays)
     
     # crate array to hold open close values
-    oc = np.zeros((len(df) + day_diff, ))
+    oc = np.zeros((len(df) + day_diff, 2))
 
     # open values
-    oc[::ppd+1] = df.loc[::ppd, "Open"]
+    oc[::ppd+1, 0] = df.loc[::ppd, "Open"]
     # close values
     oc_idx = np.ones((len(oc), ), dtype=bool)
     oc_idx[::ppd+1] = False
-    oc[oc_idx] = df.loc[:, "Adj Close"].values
+    oc[oc_idx, 0] = df.loc[:, "Adj Close"].values
+    oc[oc_idx, 1] = df.loc[:, "Volume"].values
 
     # creating index for dates
     idx = np.ones((len(oc), ), dtype=bool)
     idx[ppd::ppd+1] = False
-    dates = np.zeros(oc.shape, dtype=datetime)
+    dates = np.zeros((len(oc), ), dtype=datetime)
     if ppd == 1:
         dates[idx] = [datetime.combine(date, time(hour=9, minute=30)) for date in df.index]
     else:
@@ -51,7 +52,7 @@ def yf_to_timeseries(df: pd.DataFrame, periods_per_day: int, exchange: Literal["
     dates[~idx] = [datetime.combine(date, time(hour=16)) for date in eod_index[ppd-1::ppd]]
 
     # create and return new df
-    new_df = pd.DataFrame(data=oc, index=dates, columns=["Price"])
+    new_df = pd.DataFrame(data=oc, index=dates, columns=["Price", "Volume"])
     return new_df
 
 if __name__ == "__main__":

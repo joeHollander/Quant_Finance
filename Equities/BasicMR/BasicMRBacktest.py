@@ -47,7 +47,7 @@ MSFT_SIM = TestInstrumentProvider.equity(symbol="MSFT", venue="SIM")
 
 # downloading data
 start_str = "2023-01-01"
-end_str = "2023-01-31"
+end_str = "2023-12-31"
 
 msft_df = yf.download("MSFT", start=start_str, end=end_str, interval="1d")
 msft_ts = yf_to_timeseries(msft_df, 1).tz_localize("America/New_York")
@@ -59,8 +59,8 @@ ts_init = ts_event.copy()
 bartype = BarType.from_str("MSFT.SIM-1-HOUR-LAST-EXTERNAL")
 instrument_id = InstrumentId.from_str("MSFT.SIM")
 
-msft_ts.rename(columns={'Price': 'price'}, inplace=True)
-msft_ts["quantity"] = np.ones(len(msft_ts))
+msft_ts.rename(columns={'Price': 'price', "Volume": "quantity"}, inplace=True)
+msft_ts["quantity"] = list(map(lambda x: 1 if x == 0 else x, msft_ts["quantity"]))
 msft_ts["trade_id"] = np.arange(len(msft_ts))
 
 wrangler = TradeTickDataWrangler(instrument=MSFT_SIM)
@@ -130,3 +130,5 @@ config = BacktestRunConfig(
 node = BacktestNode(configs=[config])
 
 results = node.run() 
+#print(msft_ts.head(5))
+#print(catalog.trade_ticks()[:5])
