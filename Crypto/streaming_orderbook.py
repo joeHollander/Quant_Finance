@@ -7,6 +7,7 @@ import json
 import httpx
 import time
 from datetime import datetime
+from pathlib import Path
 
 
 
@@ -28,8 +29,20 @@ async def orderbook_download(pair):
     snapshot = snapshot.json()
     snapshot["time"] = time.time()
 
-    async with aiofiles.open(f"{pair_lower}-snapshots-{today}.txt", mode = "a") as f:
+    snapshot_file = Path(f"/{pair_lower}-snapshots-{today}.txt")
+    if snapshot_file.is_file():
+        smode = "w"
+    else:
+        smode = "a"
+
+    async with aiofiles.open(f"{pair_lower}-snapshots-{today}.txt", mode = smode) as f:
         await f.write(json.dumps(snapshot) + "\n")
+
+    updates_file = Path(f"/{pair_lower}-updates-{today}.txt")
+    if updates_file.is_file():
+        umode = "w"
+    else:
+        umode = "a"
 
     async with connect(websocket_url) as websocket:
 
@@ -44,4 +57,4 @@ async def orderbook_download(pair):
 
     pass
 
-asyncio.run(orderbook_download("BTCUSD"))
+asyncio.run(orderbook_download("BTCUSDT"))
