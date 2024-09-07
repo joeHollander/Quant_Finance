@@ -32,7 +32,7 @@ from nautilus_trader.model.enums import AggregationSource
 from nautilus_trader.core.datetime import dt_to_unix_nanos
 from nautilus_trader.serialization.base import register_serializable_type
 from nautilus_trader.serialization.arrow.serializer import register_arrow
-from BasicMRData import SingleBar
+#from BasicMRData import SingleBar
 from util import yf_to_timeseries
 
 # other file related imports
@@ -47,10 +47,10 @@ MSFT_SIM = TestInstrumentProvider.equity(symbol="MSFT", venue="SIM")
 
 # downloading data
 start_str = "2023-01-01"
-end_str = "2023-01-31"
+end_str = "2023-12-31"
 
-msft_df = yf.download("MSFT", start=start_str, end=end_str, interval="1h")
-msft_ts = yf_to_timeseries(msft_df, 7)
+msft_df = yf.download("MSFT", start=start_str, end=end_str, interval="1d")
+msft_ts = yf_to_timeseries(msft_df, 1).tz_localize("America/New_York")
 
 ts_event = msft_ts.index.view(np.uint64)
 ts_init = ts_event.copy()
@@ -59,8 +59,8 @@ ts_init = ts_event.copy()
 bartype = BarType.from_str("MSFT.SIM-1-HOUR-LAST-EXTERNAL")
 instrument_id = InstrumentId.from_str("MSFT.SIM")
 
-msft_ts.rename(columns={'Price': 'price'}, inplace=True)
-msft_ts["quantity"] = np.ones(len(msft_ts))
+msft_ts.rename(columns={'Price': 'price', "Volume": "quantity"}, inplace=True)
+msft_ts["quantity"] = list(map(lambda x: 1 if x == 0 else x, msft_ts["quantity"]))
 msft_ts["trade_id"] = np.arange(len(msft_ts))
 
 wrangler = TradeTickDataWrangler(instrument=MSFT_SIM)
@@ -94,8 +94,8 @@ venues = [
 ]
 
 
-start = dt_to_unix_nanos(pd.Timestamp(start_str, tz="EST"))
-end =  dt_to_unix_nanos(pd.Timestamp(end_str, tz="EST"))
+start = dt_to_unix_nanos(pd.Timestamp(start_str, tz="America/New_York"))
+end =  dt_to_unix_nanos(pd.Timestamp(end_str, tz="America/New_York"))
 
 # data config
 data = [
@@ -114,7 +114,7 @@ strategy = ImportableStrategyConfig(
         config=dict(
             instrument_id=instrument.id,
             bar_type=bartype,
-            trade_size=Decimal(10_000),
+            trade_size=Decimal(1),
         ),
     )
 
@@ -129,8 +129,6 @@ config = BacktestRunConfig(
 # backtest config
 node = BacktestNode(configs=[config])
 
-results = node.run()
-print(results)
-
-
-
+results = node.run() 
+#print(msft_ts.head(5))
+#print(catalog.trade_ticks()[:5])

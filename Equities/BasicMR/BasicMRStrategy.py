@@ -33,7 +33,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 from BasicMRData import SingleBar
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 # make timestamps readable
 def human_readable_duration(ns: float):
@@ -62,6 +62,13 @@ class BasicMR(Strategy):
         self.instrument_id = config.instrument_id
         self.bar_type = config.bar_type
         self.trade_size = config.trade_size
+        self.recent_date = None
+        self.recent_open = None
+        self.recent_close = None
+        self.val = None
+        self.position: Position = None
+        self.avg_quantity = None 
+
 
     def on_start(self):
         # subscribe to data
@@ -69,15 +76,65 @@ class BasicMR(Strategy):
         
         self.log.info("STARTING", color=LogColor.GREEN)
 
+    def check_for_entry(self):
+        if not self.avg_quantity:
+            return 
+        
+        v = self.cache.trade_ticks(self.instrument_id)[1].size
+
+        if self.val >= 0.01 and self.val <= 0.02 and v < self.avg_quantity: 
+            order = self.order_factory.market(
+                instrument_id=self.instrument_id,
+                order_side=OrderSide.BUY,
+                quantity=Quantity.from_int(self.trade_size),
+            )
+            self.submit_order(order)
+        elif self.val <= -0.01 and self.val >= -0.02 and v < self.avg_quantity:
+            order = self.order_factory.market(
+                instrument_id=self.instrument_id,
+                order_side=OrderSide.SELL,
+                quantity=Quantity.from_int(self.trade_size),
+            )
+            self.submit_order(order)
+
+    def exit_position(self):
+        if self.position:
+            self.close_position(self.position)
+
+        self.log.info(f"Closed position: {self.position}", color=LogColor.RED)
+
+
     def on_trade_tick(self, trade_tick: TradeTick):
-        self.log.info(f"Tick: {trade_tick.price, datetime.fromtimestamp(trade_tick.ts_event / 1e9).strftime('%m/%d/%Y, %H:%M:%S')}", color=LogColor.BLUE)
-        print("GOT TICK")
-        self.log.info("Got Tick", color=LogColor.BLUE)
+        #self.log.info(f"Tick: {trade_tick.price, datetime.fromtimestamp(trade_tick.ts_event / 1e9).strftime('%m/%d/%Y, %H:%M:%S')}", color=LogColor.BLUE)
+        date = datetime.fromtimestamp(trade_tick.ts_event / 1e9).date()
+
+        if self.recent_date is None:
+            self.recent_date = date
+        elif self.recent_date == date:
+            self.recent_close = trade_tick.price
+            self.exit_position()
+        elif self.recent_date != date:
+            self.recent_open = trade_tick.price
+            if self.recent_close is None or self.recent_open is None:
+                return
+            else:
+                self.val = -np.log(float(self.recent_open) / float(self.recent_close))
+                self.check_for_entry()
+
+        self.recent_date = date
+
+        if not self.val:
+            return
+        
+        if len(self.cache.trade_ticks(self.instrument_id)) >= 10:
+            last_quantities = [x.size for x in self.cache.trade_ticks(self.instrument_id)[:10]]
+            self.avg_quantity = float(sum(last_quantities)) / (len(last_quantities) / 2)
+
 
     def on_event(self, event):
         if isinstance(event, (PositionOpened, PositionChanged)):
-            position = self.cache.position(event.position_id)
-            self._log.info(f"{position}", color=LogColor.YELLOW)
+            self.position = self.cache.position(event.position_id)
+            #self._log.info(f"{self.position}", color=LogColor.YELLOW)
 
     def on_data(self, data: Data):
         self.log.info("Got Data", color=LogColor.GREEN)

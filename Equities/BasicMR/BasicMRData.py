@@ -29,7 +29,7 @@ from nautilus_trader.config import ImportableStrategyConfig,  ImportableActorCon
 from nautilus_trader.persistence.catalog import ParquetDataCatalog
 from nautilus_trader.model.enums import AggregationSource
 from nautilus_trader.core.datetime import dt_to_unix_nanos
-from util import yf_to_timeseries
+#from util import yf_to_timeseries
 from nautilus_trader.core.data import Data
 
 from itertools import repeat
