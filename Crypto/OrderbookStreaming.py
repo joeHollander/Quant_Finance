@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 api = krakenex.API()
 k = KrakenAPI(api)
-res = k.get_order_book("MKR/USD", 20)
+res = k.get_order_book("ENS/USD", 20)
 offers = pd.DataFrame(res[0], dtype=float)
 bids = pd.DataFrame(res[1], dtype=float)
 
@@ -16,6 +16,7 @@ bids = pd.DataFrame(res[1], dtype=float)
 # else:
 #     f = open("Data/orderbook.txt", "a")
 
+# plotting
 bids.sort_values(by="price", ascending=False, inplace=True)
 offers.sort_values(by="price", ascending=True, inplace=True)
 
@@ -33,3 +34,7 @@ plt.ylabel("Cumulative Volume")
 plt.legend()
 
 plt.show()
+
+# vwap
+vwap = np.average(np.append(bids["price"].values, offers["price"].values), weights=np.append(bids["volume"].values, offers["volume"].values))
+print(vwap)
