@@ -7,7 +7,10 @@ import matplotlib.pyplot as plt
 
 class OBDisplay():
     def __init__(self, offers: pd.DataFrame, bids: pd.DataFrame):
-        self.fig, self.ax = plt.subplots()
+        plt.ion()
+        self.fig = plt.figure() 
+        self.ax = self.fig.add_subplot(111) 
+        self.i = True
 
         bids.sort_values(by="price", ascending=True, inplace=True)
         offers.sort_values(by="price", ascending=True, inplace=True)
@@ -21,31 +24,42 @@ class OBDisplay():
         self.offers = offers
         self.bids = bids
 
-    def plot_total(self, bar_width=0.25):
+    def plot_total(self, bar_width=0.25, dynamic=False):
         self.ax.clear()
+        
+        bids_offset = self.bids["price"].values - bar_width / 2  # shift left
+        offers_offset = self.offers["price"].values + bar_width / 2  # shift right
 
-        bids_offset = bids["price"].values - bar_width / 2  # shift left
-        offers_offset = offers["price"].values + bar_width / 2  # shift right
+        if self.i:
+            bid_bars = self.ax.bar(bids_offset, self.bids["total"].values, width=bar_width, color='green', label='Bids')
+            offer_bars = self.ax.bar(offers_offset, self.offers["total"].values, width=bar_width, color='red', label='Offers')
+            self.i = False
+        else:
+            bid_bars.set_ydata(self.bids["total"].values)
+            offer_bars.set_ydata(self.offers["total"].values)
 
-        self.ax.bar(bids_offset, bids["total"].values, width=bar_width, color='green', label='Bids')
-        self.ax.bar(offers_offset, offers["total"].values, width=bar_width, color='red', label='Offers')
+        self.ax.set_xlabel("Price")
+        self.ax.set_ylabel("Cumulative Volume")
 
-        self.ax.xlabel("Price")
-        self.ax.ylabel("Cumulative Volume")
-        self.ax.legend()
-
-        self.fig.canvas.draw()
-        self.fig.canvas.flush_events()
+        if not self.ax.get_legend():
+            self.ax.legend()
+        
+        if dynamic:
+            self.fig.canvas.draw()
+            self.fig.canvas.flush_events()
+            plt.pause(1)
+        else:
+            plt.show()
 
     def vwap(self, exponent=1):
-        vwap = np.average(np.append(bids["price"].values, offers["price"].values), weights=np.append(bids["volume"].values, offers["volume"].values)**exponent)
+        vwap = np.average(np.append(self.bids["price"].values, self.offers["price"].values), weights=np.append(self.bids["volume"].values, self.offers["volume"].values)**exponent)
         return vwap
 
     def vvwap(self, v_exponent=1, var_exponent=1):
-        bids["diff"] = 0.01 -(bids["price"] - bids["price"].iloc[-1])
-        offers["diff"] = 0.01 + offers["price"] - offers["price"].iloc[0]
-        weights = (np.append(bids["volume"].values, offers["volume"].values)**v_exponent) / (np.append(bids["diff"].values, offers["diff"].values)**var_exponent)
-        vvwap = np.average(np.append(bids["price"].values, offers["price"].values), weights=weights)
+        self.bids["diff"] = 0.01 -(self.bids["price"] - self.bids["price"].iloc[-1])
+        self.offers["diff"] = 0.01 + self.offers["price"] - self.offers["price"].iloc[0]
+        weights = (np.append(self.bids["volume"].values, self.offers["volume"].values)**v_exponent) / (np.append(self.bids["diff"].values, self.offers["diff"].values)**var_exponent)
+        vvwap = np.average(np.append(self.bids["price"].values, self.offers["price"].values), weights=weights)
         return vvwap
 
 if __name__ == "__main__":
@@ -55,10 +69,11 @@ if __name__ == "__main__":
     offers = pd.DataFrame(res[0], dtype=float)
     bids = pd.DataFrame(res[1], dtype=float)
 
-    print("normal vwap: ", OBDisplay(offers, bids).vwap())
-    print("squared vwap: ", OBDisplay(offers, bids).vwap(exponent=2))
-    print("normal var vwap: ", OBDisplay(offers, bids).vvwap())
-    print("squared var vwap: ", OBDisplay(offers, bids).vvwap(v_exponent=1, var_exponent=2))
-    OBDisplay(offers, bids).plot_total()
+    obd = OBDisplay(offers, bids)
+    print("normal vwap: ", obd.vwap())
+    print("squared vwap: ", obd.vwap(exponent=2))
+    print("normal var vwap: ", obd.vvwap())
+    print("squared var vwap: ", obd.vvwap(v_exponent=1, var_exponent=2))
+    obd.plot_total()
 
 
