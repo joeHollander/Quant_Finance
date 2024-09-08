@@ -13,12 +13,13 @@ async def main():
         },
     })
     symbol = 'BTC/USDT'
-    time_now = time.time()
-    while time.time() - time_now < 1:
+    start_time = time.time()
+    while time.time() - start_time < 1:
         try:
             orderbook = await exchange.watch_order_book(symbol, limit=10)
-            #print("time: ", round(time.time() * 1000),"bids: ", sorted(orderbook['bids'][:3], key=lambda x: x[0]), "asks: ", sorted(orderbook['asks'][:3], key=lambda x: x[0]))\
-            print(orderbook)
+            #print("time: ", round(time.time() * 1000),"bids: ", sorted(orderbook['bids'][:3], key=lambda x: x[0]), "asks: ", sorted(orderbook['asks'][:3], key=lambda x: x[0]))
+            tms = round(time.time_ns() / 1e6) 
+            print(orderbook, "\n", f"received {tms - orderbook['timestamp']}ms later at {tms}")
         except Exception as e:
             print(type(e).__name__, str(e))
     await exchange.close()
