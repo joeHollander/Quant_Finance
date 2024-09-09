@@ -6,50 +6,70 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 class OBDisplay():
-    def __init__(self, offers: pd.DataFrame, bids: pd.DataFrame):
+    def __init__(self, orderbook=None, bar_width=0.25):
         plt.ion()
-        self.fig = plt.figure() 
-        self.ax = self.fig.add_subplot(111) 
-        self.i = True
+        self.fig, self.ax = plt.subplots()
+        self.legend_added = False
+        self.bar_width = bar_width
+        self.bid_bars, self.offer_bars = None, None
+        
+        if not orderbook:
+            return
+        
+        self.bids, self.offers = self.process_orderbook(orderbook)
+
+        self.bids_offset = self.bids["price"].values - bar_width / 2  # shift left
+        self.offers_offset = self.offers["price"].values + bar_width / 2  # shift right
+
+    def process_orderbook(self, orderbook):
+        bids = pd.DataFrame(orderbook['bids'], columns=["price", "volume"])
+        offers = pd.DataFrame(orderbook['asks'], columns=["price", "volume"])
 
         bids.sort_values(by="price", ascending=True, inplace=True)
         offers.sort_values(by="price", ascending=True, inplace=True)
 
-        # cumulative volume
-        if "total" not in bids.columns:
-            bids["total"] = (bids["volume"][::-1].cumsum())[::-1]
-        if "total" not in offers.columns:
-            offers["total"] = offers["volume"].cumsum()
+        bids["total"] = (bids["volume"][::-1].cumsum())[::-1]
+        offers["total"] = offers["volume"].cumsum()
+        return bids, offers
 
-        self.offers = offers
-        self.bids = bids
+    def animate_total(self, orderbook):
+        #self.ax.clear()
 
-    def plot_total(self, bar_width=0.25, dynamic=False):
-        self.ax.clear()
-        
-        bids_offset = self.bids["price"].values - bar_width / 2  # shift left
-        offers_offset = self.offers["price"].values + bar_width / 2  # shift right
+        self.bids, self.offers = self.process_orderbook(orderbook)
 
-        if self.i:
-            bid_bars = self.ax.bar(bids_offset, self.bids["total"].values, width=bar_width, color='green', label='Bids')
-            offer_bars = self.ax.bar(offers_offset, self.offers["total"].values, width=bar_width, color='red', label='Offers')
-            self.i = False
+        self.bids_offset = self.bids["price"].values - self.bar_width / 2  # shift left
+        self.offers_offset = self.offers["price"].values + self.bar_width / 2  # shift right
+
+        if self.bid_bars is None and self.offer_bars is None:
+            print("First")
+            # First time plotting
+            self.bid_bars = self.ax.bar(self.bids_offset, self.bids["total"].values, width=self.bar_width, color='green', label='Bids')
+            self.offer_bars = self.ax.bar(self.offers_offset, self.offers["total"].values, width=self.bar_width, color='red', label='Offers')
+
+            # Add legend only once
+            if not self.legend_added:
+                self.ax.legend()
+                self.legend_added = True
         else:
-            bid_bars.set_ydata(self.bids["total"].values)
-            offer_bars.set_ydata(self.offers["total"].values)
+            # Update the heights of the existing bars
+            for bar, new_height in zip(self.bid_bars, self.bids["total"].values):
+                bar.set_height(new_height)
+            for bar, new_height in zip(self.offer_bars, self.offers["total"].values):
+                bar.set_height(new_height)
+
+            # Update the x-axis positions if the price values have changed
+            for bar, new_x in zip(self.bid_bars, self.bids_offset):
+                bar.set_x(new_x)
+            for bar, new_x in zip(self.offer_bars, self.offers_offset):
+                bar.set_x(new_x)
 
         self.ax.set_xlabel("Price")
         self.ax.set_ylabel("Cumulative Volume")
 
-        if not self.ax.get_legend():
-            self.ax.legend()
-        
-        if dynamic:
-            self.fig.canvas.draw()
-            self.fig.canvas.flush_events()
-            plt.pause(1)
-        else:
-            plt.show()
+        # Redraw the figure without clearing
+        self.fig.canvas.draw()
+        plt.pause(0.001)
+        self.fig.canvas.flush_events()
 
     def vwap(self, exponent=1):
         vwap = np.average(np.append(self.bids["price"].values, self.offers["price"].values), weights=np.append(self.bids["volume"].values, self.offers["volume"].values)**exponent)
