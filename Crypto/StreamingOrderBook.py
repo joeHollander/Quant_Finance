@@ -26,7 +26,7 @@ class OBDisplay:
         bids["total"] = (bids["volume"][::-1].cumsum())[::-1]
         offers["total"] = offers["volume"].cumsum()
 
-        bar_width = 0.25
+        bar_width = 0.5
         bids_offset = bids["price"].values - bar_width / 2  # shift left
         offers_offset = offers["price"].values + bar_width / 2  # shift right
 
@@ -58,7 +58,6 @@ class OBDisplay:
         # Redraw the figure without clearing
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
-        plt.pause(0.1)
 
 async def main():
     exchange = ccxt.pro.kraken({
@@ -66,7 +65,7 @@ async def main():
             'defaultType': 'future',
         },
     })
-    symbol = 'BTC/USDT'
+    symbol = 'MKR/USD'
     ob_display = OBDisplay()
     start_time = time.time()
     while time.time() - start_time < 30:  # Run for 30 seconds
