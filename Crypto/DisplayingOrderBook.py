@@ -19,13 +19,13 @@ class OBDisplay():
         elif bids is not None and offers is not None:
             self.bids, self.offers = bids, offers
         
-        
-        self.best_bid = self.bids.iloc[0]
-        self.best_offer = self.offers.iloc[0]
-        self.mid = (self.best_bid + self.best_offer) / 2
+        if orderbook is not None or (bids is not None and offers is not None):                      
+            self.best_bid = self.bids["price"].iloc[0]
+            self.best_offer = self.offers["price"].iloc[0]
+            self.mid = (self.best_bid + self.best_offer) / 2
 
-        self.bids_offset = self.bids["price"].values - bar_width / 2  # shift left
-        self.offers_offset = self.offers["price"].values + bar_width / 2  # shift right
+            self.bids_offset = self.bids["price"].values - bar_width / 2  # shift left
+            self.offers_offset = self.offers["price"].values + bar_width / 2  # shift right
 
     def process_orderbook(self, orderbook):
         bids = pd.DataFrame(orderbook['bids'], columns=["price", "volume"])
