@@ -1,0 +1,1 @@
+# uploading to csv or json and then batch into parquet 
