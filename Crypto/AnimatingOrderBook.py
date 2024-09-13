@@ -18,11 +18,11 @@ async def main():
     symbol = 'MKR/USD'
     ob_display = OBDisplay()
     start_time = time.time()
-    while time.time() - start_time < 30:  # Run for 30 seconds
+    while time.time() - start_time < 120:  # Run for 30 seconds
         try:
             orderbook = await exchange.watch_order_book(symbol, limit=25)
             ob_display.animate_total(orderbook)
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0)
 
         except Exception as e:
             print(type(e).__name__, str(e))
