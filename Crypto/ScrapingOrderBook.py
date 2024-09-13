@@ -3,6 +3,7 @@ import ccxt.pro
 import asyncio
 import sys
 import time
+import ccxt.pro.bybit
 import pandas as pd
 from pytz import timezone
 import aiofiles
@@ -42,19 +43,22 @@ async def scraping(symbol, exchange, num_of_sec, limit=25, sleep_interval=1):
     await ccxt_exchange.close()
     return(res)
 
-def main(symbol, exchange, ename, num_of_sec, limit=25, sleep_interval=1):
+def main(symbol, exchange, ename, num_of_sec, limit=25, sleep_interval=1, save=True):
     res = asyncio.run(scraping(symbol, exchange, num_of_sec, limit=limit, sleep_interval=sleep_interval))
     ny = timezone('America/New_York')
     start = datetime.fromtimestamp(res.index[0] / 1e3, tz=ny)
     end = datetime.fromtimestamp(res.index[-1] / 1e3, tz=ny)
     if start.date() != end.date():
-        fname = f"{ename}_{symbol.replace("/", "")}_{start.strftime("%d-%m-%Y-%H:%M")}-{end.strftime("%d-%m-%Y-%H:%M")}.parquet"
+        fname = f"{ename}_{symbol.replace("/", "")}_{start.strftime("%d-%m-%Y-%H%M")}-{end.strftime("%d-%m-%Y-%H%M")}.parquet"
     else:
-        fname = f"{ename}_{symbol.replace("/", "")}_{start.strftime("%d-%m-%Y-%H:%M")}-{end.strftime("%H:%M")}.parquet"
+        fname = f"{ename}_{symbol.replace("/", "")}_{start.strftime("%d-%m-%Y-%H%M")}-{end.strftime("%H%M")}.parquet"
     
     fname = "Data/OrderBook/" + fname
-    res.to_parquet(fname, engine='pyarrow')
+    if save:
+        res.to_parquet(fname, engine='pyarrow')
+    if not save:
+        return res
 
 
 # Run the async event loop
-print(main("ETH/USD", ccxt.pro.kraken, "kraken", 2, sleep_interval=1))
+print(main("ETH/USDT", ccxt.pro.kraken, "kraken", 10, sleep_interval=1, save=False))
