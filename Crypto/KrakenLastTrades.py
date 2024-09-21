@@ -26,10 +26,17 @@ ob = requests.request("GET", ob_url, params=ob_params, headers=headers).json()["
 bids = pd.DataFrame(ob["bids"], dtype=float)
 asks = pd.DataFrame(ob["asks"])
 
-bids.columns = ["price", "volume", "timestamp"]
-bids["agg_price"] = [round(2 * float(x)) / 2 for x in bids["price"]]
-agg_vol = bids["volume"].groupby(bids["agg_price"]).sum().idxmax()
-print(agg_vol.idxmax())
+def agg_vol(data, agg_val, agg_price_col=False):
+    data.columns = ["price", "volume", "timestamp"]  
+
+    agg_price = [round(x/agg_val) for x in data["price"]]
+    res = data["volume"].groupby(agg_price).sum()
+    if agg_price_col:
+        return res
+    return (res.idxmax(), res.max())
+
+print(agg_vol(bids, 0.2, True))
+print(agg_vol(bids, 0.5, False))
 #print(bids.loc[bids[max_agg_vol_idx], "agg_price"])
 
 #print(bids)
