@@ -8,11 +8,12 @@ import matplotlib.pyplot as plt
 # saving: 
 # vpoc, max delta, min delta, current delta, distance between vpoc and current mid, vwap, number of bids and asks, timestamp
 
+data_to_save = {}
+
 trades_url = "https://api.kraken.com/0/public/Trades"
 ob_url = "https://api.kraken.com/0/public/Depth"
 unix_sec = np.round(time.time())
 
-payload = {}
 headers = {
   'Accept': 'application/json'
 }
@@ -28,7 +29,7 @@ ob_params = {
 trades = requests.request("GET", trades_url, params=trades_params, headers=headers)
 ob = requests.request("GET", ob_url, params=ob_params, headers=headers).json()["result"]["XETHZUSD"]
 bids = pd.DataFrame(ob["bids"], dtype=float)
-asks = pd.DataFrame(ob["asks"])
+asks = pd.DataFrame(ob["asks"], dtype=float)
 
 def agg_vol(data, agg_val=None, agg_price_col=False):
     data.columns = ["price", "volume", "timestamp"]  
