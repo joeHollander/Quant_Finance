@@ -3,6 +3,7 @@ from datetime import datetime
 import time
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 trades_url = "https://api.kraken.com/0/public/Trades"
 ob_url = "https://api.kraken.com/0/public/Depth"
@@ -29,15 +30,18 @@ asks = pd.DataFrame(ob["asks"])
 def agg_vol(data, agg_val, agg_price_col=False):
     data.columns = ["price", "volume", "timestamp"]  
 
-    agg_price = [round(x/agg_val) for x in data["price"]]
+    agg_price = [agg_val * round(x/agg_val) for x in data["price"]]
     res = data["volume"].groupby(agg_price).sum()
+    vpoc = (res.idxmax(), res.max())
     if agg_price_col:
-        return res
-    return (res.idxmax(), res.max())
+        return res, vpoc
+    return vpoc
 
-print(agg_vol(bids, 0.2, True))
-print(agg_vol(bids, 0.5, False))
-#print(bids.loc[bids[max_agg_vol_idx], "agg_price"])
-
+data2, vals2 = agg_vol(bids, 1, True)
+data5, vals5 = agg_vol(bids, 0.01, True)
+print(len(data5.values))
+plt.scatter(data2.index, data2.values)
+plt.scatter(data5.index, data5.values)
+plt.show()
 #print(bids)
 #print(pd.DataFrame(trades.json()["result"]["XETHZUSD"]))
