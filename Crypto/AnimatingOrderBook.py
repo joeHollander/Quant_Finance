@@ -16,7 +16,7 @@ async def main():
         },
     })
     symbol = 'MKR/USD'
-    ob_display = OBDisplay()
+    ob_display = OBDisplay(total=False)
     start_time = time.time()
     while time.time() - start_time < 120:  # Run for 30 seconds
         try:

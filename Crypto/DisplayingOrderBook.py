@@ -6,12 +6,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 class OBDisplay():
-    def __init__(self, orderbook=None, bids=None, offers=None, bar_width=0.25):
+    def __init__(self, orderbook=None, bids=None, offers=None, bar_width=0.25, total=True):
         plt.ion()
         self.fig, self.ax = plt.subplots()
         self.legend_added = False
         self.bar_width = bar_width
         self.bid_bars, self.offer_bars = None, None
+        self.total = total
 
         
         if orderbook is not None:
@@ -36,6 +37,11 @@ class OBDisplay():
 
         bids["total"] = (bids["volume"][::-1].cumsum())[::-1]
         offers["total"] = offers["volume"].cumsum()
+
+        if not self.total:
+            bids["total"] = bids["volume"]
+            offers["total"] = offers["volume"]
+
         return bids, offers
 
     def animate_total(self, orderbook):
@@ -105,12 +111,11 @@ if __name__ == "__main__":
     
     bids = bids.astype(np.float64)
     offers = offers.astype(np.float64)
-    obd = OBDisplay(bids=bids, offers=offers)
+    obd = OBDisplay(bids=bids, offers=offers, total=True)
     print("normal vwap: ", obd.vwap())
     print("squared vwap: ", obd.vwap(exponent=2))
     print("normal var vwap: ", obd.vvwap())
     print("squared var vwap: ", obd.vvwap(v_exponent=1, var_exponent=2))
     print(obd.mid)
-    #obd.plot_total()
 
 
