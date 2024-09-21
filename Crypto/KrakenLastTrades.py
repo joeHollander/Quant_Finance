@@ -5,6 +5,9 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
+# saving: 
+# vpoc, max delta, min delta, current delta, distance between vpoc and current mid, vwap, number of bids and asks, timestamp
+
 trades_url = "https://api.kraken.com/0/public/Trades"
 ob_url = "https://api.kraken.com/0/public/Depth"
 unix_sec = np.round(time.time())
@@ -27,10 +30,13 @@ ob = requests.request("GET", ob_url, params=ob_params, headers=headers).json()["
 bids = pd.DataFrame(ob["bids"], dtype=float)
 asks = pd.DataFrame(ob["asks"])
 
-def agg_vol(data, agg_val, agg_price_col=False):
+def agg_vol(data, agg_val=None, agg_price_col=False):
     data.columns = ["price", "volume", "timestamp"]  
 
-    agg_price = [agg_val * round(x/agg_val) for x in data["price"]]
+    if agg_val is None:
+        agg_price = data["price"]
+    else:
+        agg_price = [agg_val * round(x/agg_val) for x in data["price"]]
     res = data["volume"].groupby(agg_price).sum()
     vpoc = (res.idxmax(), res.max())
     if agg_price_col:
@@ -38,7 +44,7 @@ def agg_vol(data, agg_val, agg_price_col=False):
     return vpoc
 
 data2, vals2 = agg_vol(bids, 1, True)
-data5, vals5 = agg_vol(bids, 0.01, True)
+data5, vals5 = agg_vol(bids, agg_price_col=True)
 print(len(data5.values))
 plt.scatter(data2.index, data2.values)
 plt.scatter(data5.index, data5.values)
