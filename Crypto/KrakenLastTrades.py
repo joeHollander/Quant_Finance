@@ -6,7 +6,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # saving: 
-# vpoc, max delta, min delta, current delta, distance between vpoc and current mid, vwap, number of bids and asks, timestamp
+# vpoc, max delta, min delta, current delta, distance between vpoc and current mid, vwap, 
+# number of bids and asks, timestamp
+# imbalance ratio: b - a / b + a, liquidity gap, spread
 
 data_to_save = {}
 
@@ -31,6 +33,9 @@ ob = requests.request("GET", ob_url, params=ob_params, headers=headers).json()["
 bids = pd.DataFrame(ob["bids"], dtype=float)
 asks = pd.DataFrame(ob["asks"], dtype=float)
 
+def agg_data(bids, asks):
+    
+
 def agg_vol(data, agg_val=None, agg_price_col=False):
     data.columns = ["price", "volume", "timestamp"]  
 
@@ -44,11 +49,9 @@ def agg_vol(data, agg_val=None, agg_price_col=False):
         return res, vpoc
     return vpoc
 
-data2, vals2 = agg_vol(bids, 1, True)
-data5, vals5 = agg_vol(bids, agg_price_col=True)
-print(len(data5.values))
-plt.scatter(data2.index, data2.values)
-plt.scatter(data5.index, data5.values)
-plt.show()
+col, vals = agg_vol(bids, 0.1, True)
+print(col)
+print(type(col))
+
 #print(bids)
 #print(pd.DataFrame(trades.json()["result"]["XETHZUSD"]))
