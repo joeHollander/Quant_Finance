@@ -60,9 +60,6 @@ class OBDisplay():
             # First time plotting
             self.bid_bars = self.ax.bar(self.bids_offset, self.bids["total"].values, width=self.bar_width, color='green', label='Bids')
             self.offer_bars = self.ax.bar(self.offers_offset, self.offers["total"].values, width=self.bar_width, color='red', label='Offers')
-
-            self.bid_text = self.ax.text(0.7 * (bb + self.bids["price"].min()), self.offers["total"].max(), f"Best Bid: {bb}", color="green", fontsize=12)
-            self.offer_text = self.ax.text(0.3 * (bo + self.offers["price"].max()), self.offers["total"].max(), f"Best Offer: {bo}", color="red", fontsize=12)
                 
             # Add legend only once
             if not self.legend_added:
@@ -75,12 +72,6 @@ class OBDisplay():
             for bar, new_height in zip(self.offer_bars, self.offers["total"].values):
                 bar.set_height(new_height)
             
-            self.bid_text.set_text(f"Best Bid: {bb}")
-            #self.bid_text.set_position((0.7 * (bb + self.bids["price"].min()), self.offers["total"].max()))
-            self.offer_text.set_text(f"Best Offer: {bo}")
-            #self.offer_text.set_position((0.3 * (bo + self.offers["price"].max()), self.offers["total"].max()))
-
-
             # Update the x-axis positions if the price values have changed
             for bar, new_x in zip(self.bid_bars, self.bids_offset):
                 bar.set_x(new_x)
