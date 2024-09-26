@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # saving: 
-# vpoc, max delta, min delta, current delta, distance between vpoc and current mid, vwap, 
+# vpoc, max delta, min delta, current delta, vwap, 
 # number of bids and asks, timestamp
 # imbalance ratio: b - a / b + a, liquidity gap, spread
 
@@ -36,8 +36,9 @@ ob = requests.request("GET", ob_url, params=ob_params, headers=headers).json()["
 bids = pd.DataFrame(ob["bids"], dtype=float)
 asks = pd.DataFrame(ob["asks"], dtype=float)
 
-def agg_data(bids, asks):
-    return 
+# def agg_data(bids, asks):
+#     data = {"bids": len(bids), "asks": len(asks),
+#             "timestamp"
 
 # vpoc
 def agg_vol(data, agg_val=None, agg_price_col=False):
@@ -74,3 +75,4 @@ print(delta(trades_df))
 
 print("best bid: ", bids.iloc[0, 0])
 print("best ask: ", asks.iloc[0, 0])
+print(bids)
