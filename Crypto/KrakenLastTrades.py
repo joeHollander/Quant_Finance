@@ -4,8 +4,7 @@ import time
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-
-data_to_save = {}
+import schedule
 
 # saving: 
 # vpoc, max delta, min delta, current delta, vwap, 
@@ -50,7 +49,7 @@ def delta(data, percent=True):
         data["delta"] = data["delta"] / total_vol
     return (data.iloc[-1, :]["delta"], data.index[-1].timestamp()), (data["delta"].max(), data["delta"].idxmax().timestamp()), (data["delta"].min(), data["delta"].idxmin().timestamp())
 
-def job(symbol, currency, time=30):
+def job(symbol="ETH", currency="USD", interval=30):
     
     trades_url = "https://api.kraken.com/0/public/Trades"
     ob_url = "https://api.kraken.com/0/public/Depth"
@@ -61,7 +60,7 @@ def job(symbol, currency, time=30):
     }
     trades_params = {
       'pair': symbol + currency,
-      'since': unix_sec - time
+      'since': unix_sec - interval
     }
 
     ob_params = {
@@ -89,4 +88,10 @@ def job(symbol, currency, time=30):
     trades_df = trades_df.astype({"price": float, "volume": float, "timestamp": float})
 
     print(agg_data(bids, asks, trades_df))
+
+schedule.every(30).seconds.do(job)
+
+print("STARTING!!!")
+while True:
+    schedule.run_pending()
 
