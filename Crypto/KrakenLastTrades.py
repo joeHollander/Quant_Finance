@@ -7,35 +7,6 @@ import matplotlib.pyplot as plt
 
 data_to_save = {}
 
-trades_url = "https://api.kraken.com/0/public/Trades"
-ob_url = "https://api.kraken.com/0/public/Depth"
-unix_sec = np.round(time.time())
-
-symbol = "ETH"
-currency = "USD"
-
-headers = {
-  'Accept': 'application/json'
-}
-trades_params = {
-  'pair': symbol + currency,
-  'since': unix_sec - 30
-}
-
-ob_params = {
-  'pair': symbol + currency,
-}
-
-trades = requests.request("GET", trades_url, params=trades_params, headers=headers)
-ob = requests.request("GET", ob_url, params=ob_params, headers=headers).json()["result"][f"X{symbol}Z{currency}"]
-bids = pd.DataFrame(ob["bids"], dtype=float, columns=["price", "volume", "timestamp"])
-bids.set_index("timestamp", inplace=True)
-bids.index = pd.to_datetime(bids.index, unit="s")
-
-asks = pd.DataFrame(ob["asks"], dtype=float, columns=["price", "volume", "timestamp"])
-asks.set_index("timestamp", inplace=True)
-asks.index = pd.to_datetime(asks.index, unit="s")
-
 # saving: 
 # vpoc, max delta, min delta, current delta, vwap, 
 # number of bids and asks, timestamp
@@ -79,12 +50,43 @@ def delta(data, percent=True):
         data["delta"] = data["delta"] / total_vol
     return (data.iloc[-1, :]["delta"], data.index[-1].timestamp()), (data["delta"].max(), data["delta"].idxmax().timestamp()), (data["delta"].min(), data["delta"].idxmin().timestamp())
 
+def job(symbol, currency, time=30):
+    
+    trades_url = "https://api.kraken.com/0/public/Trades"
+    ob_url = "https://api.kraken.com/0/public/Depth"
+    unix_sec = np.round(time.time())
 
-trades_df = pd.DataFrame(trades.json()["result"][f"X{symbol}Z{currency}"], 
+    headers = {
+      'Accept': 'application/json'
+    }
+    trades_params = {
+      'pair': symbol + currency,
+      'since': unix_sec - time
+    }
+
+    ob_params = {
+      'pair': symbol + currency,
+      'count': 500
+    }
+
+    # requesting data
+    trades = requests.request("GET", trades_url, params=trades_params, headers=headers)
+    ob = requests.request("GET", ob_url, params=ob_params, headers=headers).json()["result"][f"X{symbol}Z{currency}"]
+
+    # processing bids
+    bids = pd.DataFrame(ob["bids"], dtype=float, columns=["price", "volume", "timestamp"])
+    bids.set_index("timestamp", inplace=True)
+    bids.index = pd.to_datetime(bids.index, unit="s")
+
+    # processing asks
+    asks = pd.DataFrame(ob["asks"], dtype=float, columns=["price", "volume", "timestamp"])
+    asks.set_index("timestamp", inplace=True)
+    asks.index = pd.to_datetime(asks.index, unit="s")
+
+    # processing trades
+    trades_df = pd.DataFrame(trades.json()["result"][f"X{symbol}Z{currency}"], 
                    columns=["price", "volume", "timestamp", "order_side", "order_type", "misc", "id"])
-trades_df = trades_df.astype({"price": float, "volume": float, "timestamp": float})
+    trades_df = trades_df.astype({"price": float, "volume": float, "timestamp": float})
 
-trades_df.set_index("timestamp", inplace=True)
-trades_df.index = pd.to_datetime(trades_df.index, unit="s")
+    print(agg_data(bids, asks, trades_df))
 
-print(agg_data(bids, asks, trades_df))
