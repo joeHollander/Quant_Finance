@@ -5,6 +5,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import schedule
+import sys
+import os
 
 # saving: 
 # vpoc, max delta, min delta, current delta, vwap, 
@@ -12,7 +14,10 @@ import schedule
 # imbalance ratio: b - a / b + a, liquidity gap, spread
 
 def agg_data(bids, asks, trades):
-    curr_delta, max_delta, min_delta = delta(trades)
+    if delta(trades) is None:
+        curr_delta, max_delta, min_delta = (0, 0, 0)
+    else:
+        curr_delta, max_delta, min_delta = delta(trades)
     best_bid = bids["price"].max()
     best_ask = asks["price"].min()
     bid_vpoc = agg_vol(bids, 0.2)
@@ -40,14 +45,16 @@ def agg_vol(data, agg_val=None, agg_price_col=False):
     return vpoc
 
 def delta(data, percent=True):
-    if data is None:
+    if data is None or data.empty:
         return
     side = [float(vol) if x == "b" else -float(vol) for x, vol in zip(data["order_side"], data["volume"])]
     data["delta"] = np.cumsum(side)
     total_vol = data["volume"].astype(float).sum()
     if percent:
         data["delta"] = data["delta"] / total_vol
-    return (data.iloc[-1, :]["delta"], data.index[-1].timestamp()), (data["delta"].max(), data["delta"].idxmax().timestamp()), (data["delta"].min(), data["delta"].idxmin().timestamp())
+    return ((data.iloc[-1, :]["delta"], data.index[-1].timestamp()), 
+            (data["delta"].max(), data["delta"].idxmax().timestamp()), 
+            (data["delta"].min(), data["delta"].idxmin().timestamp()))
 
 def job(symbol="ETH", currency="USD", interval=30):
     
@@ -86,12 +93,22 @@ def job(symbol="ETH", currency="USD", interval=30):
     trades_df = pd.DataFrame(trades.json()["result"][f"X{symbol}Z{currency}"], 
                    columns=["price", "volume", "timestamp", "order_side", "order_type", "misc", "id"])
     trades_df = trades_df.astype({"price": float, "volume": float, "timestamp": float})
+    trades_df.set_index("timestamp", inplace=True)
+    trades_df.index = pd.to_datetime(trades_df.index, unit="s")
 
     print(agg_data(bids, asks, trades_df))
+    print(trades_df)
 
-schedule.every(30).seconds.do(job)
+schedule.every(10).seconds.do(job)
 
 print("STARTING!!!")
-while True:
+try:
+  while True:
     schedule.run_pending()
+except KeyboardInterrupt:
+        print('Interrupted')
+        try:
+            sys.exit(130)
+        except SystemExit:
+            os._exit(130)
 
