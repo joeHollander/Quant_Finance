@@ -89,8 +89,11 @@ def job(symbol="ETH", currency="USD", interval=30):
     }
 
     # requesting data
-    trades = requests.request("GET", trades_url, params=trades_params, headers=headers)
-    ob = requests.request("GET", ob_url, params=ob_params, headers=headers).json()["result"][f"X{symbol}Z{currency}"]
+    trades = requests.request("GET", trades_url, params=trades_params, headers=headers).json()["result"]
+    trades_key = list(trades.keys())[0]
+    ob = requests.request("GET", ob_url, params=ob_params, headers=headers).json()["result"]
+    ob_key = list(ob.keys())[0]
+    ob = ob[ob_key]
 
     # processing bids
     bids = pd.DataFrame(ob["bids"], dtype=float, columns=["price", "volume", "timestamp"])
@@ -103,7 +106,7 @@ def job(symbol="ETH", currency="USD", interval=30):
     asks.index = pd.to_datetime(asks.index, unit="s")
 
     # processing trades
-    trades_df = pd.DataFrame(trades.json()["result"][f"X{symbol}Z{currency}"], 
+    trades_df = pd.DataFrame(trades[trades_key], 
                    columns=["price", "volume", "timestamp", "order_side", "order_type", "misc", "id"])
     trades_df = trades_df.astype({"price": float, "volume": float, "timestamp": float})
     trades_df.set_index("timestamp", inplace=True)
