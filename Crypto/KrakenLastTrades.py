@@ -8,6 +8,8 @@ import schedule
 import sys
 import os
 
+interval = 30
+
 # saving: 
 # vpoc, max delta, min delta, current delta, vwap, 
 # number of bids and asks, timestamp
@@ -56,8 +58,17 @@ def delta(data, percent=True):
             (data["delta"].max(), data["delta"].idxmax().timestamp()), 
             (data["delta"].min(), data["delta"].idxmin().timestamp()))
 
+date_started = None
 def job(symbol="ETH", currency="USD", interval=30):
-    
+    global date_started
+    date = datetime.now().date()    
+    if date_started is None:
+        date_started = datetime.now().date()
+    elif date_started != date:
+        new_date = True
+    else: 
+        new_date = False
+    date_started = datetime.now().date()
     trades_url = "https://api.kraken.com/0/public/Trades"
     ob_url = "https://api.kraken.com/0/public/Depth"
     unix_sec = np.round(time.time())
@@ -96,10 +107,13 @@ def job(symbol="ETH", currency="USD", interval=30):
     trades_df.set_index("timestamp", inplace=True)
     trades_df.index = pd.to_datetime(trades_df.index, unit="s")
 
-    print(agg_data(bids, asks, trades_df))
-    print(trades_df)
+    res = agg_data(bids, asks, trades_df)
+    str_date = datetime.now().strftime("%Y%m%d")
+    f = open(f"Data/kraken_files/kraken_{symbol}_{currency}_{str_date}.txt", "a")
+    f.write(str(res) + "\n")
+    print("written to file!")
 
-schedule.every(10).seconds.do(job)
+schedule.every(interval).seconds.do(lambda: job("ETH", "USD", interval))
 
 print("STARTING!!!")
 try:
