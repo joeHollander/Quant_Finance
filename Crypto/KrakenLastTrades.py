@@ -10,7 +10,7 @@ import os
 
 symbol = input("Enter symbol: ")
 currency = input("Enter currency: ")
-interval = input("Enter interval in seconds: ")
+interval = int(input("Enter interval in seconds: "))
 
 # saving: 
 # vpoc, max delta, min delta, current delta, vwap, 
