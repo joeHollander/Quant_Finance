@@ -8,7 +8,9 @@ import schedule
 import sys
 import os
 
-interval = 30
+symbol = input("Enter symbol: ")
+currency = input("Enter currency: ")
+interval = input("Enter interval in seconds: ")
 
 # saving: 
 # vpoc, max delta, min delta, current delta, vwap, 
@@ -113,7 +115,7 @@ def job(symbol="ETH", currency="USD", interval=30):
     f.write(str(res) + "\n")
     print("written to file!")
 
-schedule.every(interval).seconds.do(lambda: job("ETH", "USD", interval))
+schedule.every(interval).seconds.do(lambda: job(symbol, currency, interval))
 
 print("STARTING!!!")
 try:
