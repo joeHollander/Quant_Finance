@@ -7,10 +7,13 @@ import matplotlib.pyplot as plt
 import schedule
 import sys
 import os
+from functools import partial
+import asyncio
+import aiohttp
 
-symbol = input("Enter symbol: ")
-currency = input("Enter currency: ")
-interval = int(input("Enter interval in seconds: "))
+# symbol = input("Enter symbol: ")
+# currency = input("Enter currency: ")
+# interval = int(input("Enter interval in seconds: "))
 
 # saving: 
 # vpoc, max delta, min delta, current delta, vwap, 
@@ -61,7 +64,7 @@ def delta(data, percent=True):
             (data["delta"].min(), data["delta"].idxmin().timestamp()))
 
 date_started = None
-def job(symbol="ETH", currency="USD", interval=30):
+async def job(symbol="ETH", currency="USD", interval=30):
     global date_started
     date = datetime.now().date()    
     if date_started is None:
@@ -89,12 +92,18 @@ def job(symbol="ETH", currency="USD", interval=30):
     }
 
     # requesting data
-    trades = requests.request("GET", trades_url, params=trades_params, headers=headers).json()["result"]
+    async with aiohttp.ClientSession() as session:
+        async with session.get(trades_url, params=trades_params, headers=headers) as response:
+            trades = await response.json()
+        async with session.get(ob_url, params=ob_params, headers=headers) as response:
+            ob = await response.json()
+    
+    trades = trades["result"]
+    ob = ob["result"]
     trades_key = list(trades.keys())[0]
-    ob = requests.request("GET", ob_url, params=ob_params, headers=headers).json()["result"]
     ob_key = list(ob.keys())[0]
     ob = ob[ob_key]
-
+    
     # processing bids
     bids = pd.DataFrame(ob["bids"], dtype=float, columns=["price", "volume", "timestamp"])
     bids.set_index("timestamp", inplace=True)
@@ -118,16 +127,33 @@ def job(symbol="ETH", currency="USD", interval=30):
     f.write(str(res) + "\n")
     print("written to file!")
 
-schedule.every(interval).seconds.do(lambda: job(symbol, currency, interval))
+# print("STARTING!!!")
+# try:
+#   while True:
+#     schedule.run_pending()
+# except KeyboardInterrupt:
+#         print('Interrupted')
+#         try:
+#             sys.exit(130)
+#         except SystemExit:
+#             os._exit(130)
 
-print("STARTING!!!")
-try:
-  while True:
-    schedule.run_pending()
-except KeyboardInterrupt:
-        print('Interrupted')
-        try:
-            sys.exit(130)
-        except SystemExit:
-            os._exit(130)
+async def main(symbols, currencies, intervals):
+        args = [job(symbol, currency, interval) for symbol, currency, interval in zip(symbols, currencies, intervals)]
+        await asyncio.gather(*args)
 
+symbols = ["BTC", "ETH"]
+currencies = ["USD", "USD"]
+intervals = [30, 30]             
+
+if __name__ == "__main__":
+    try:
+        while True:
+            asyncio.run(main(symbols, currencies, intervals))
+            time.sleep(30)
+    except KeyboardInterrupt:
+            print('Interrupted')
+            try:
+                sys.exit(130)
+            except SystemExit:
+                os._exit(130)
