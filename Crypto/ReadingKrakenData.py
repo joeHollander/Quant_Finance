@@ -31,8 +31,7 @@ def txt_to_csv(input_file, output_file, delete_input=False):
 
 if __name__ == "__main__":
     fname = "kraken_ETH_USDT_20241001"
-
-    input_file = "Data/kraken_files/" + fname + ".txt"
     output_file = "Data/kraken_files/" + fname + ".csv"
 
-    txt_to_csv(input_file, output_file, delete_input=True)
+    df = pd.read_csv(output_file)
+    print(df.loc[:5, "curr_delta"])

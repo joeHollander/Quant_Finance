@@ -143,12 +143,12 @@ async def job(symbol="ETH", currency="USD", interval=30):
 async def main(symbols, currencies, intervals):
         args = [job(symbol, currency, interval) for symbol, currency, interval in zip(symbols, currencies, intervals)]
         await asyncio.gather(*args)
-
-symbols = ["SOL"]
-currencies = ["USD"]
-intervals = [30]             
-
+       
 if __name__ == "__main__":
+    symbols = ["SOL"]
+    currencies = ["USD"]
+    intervals = [30]  
+
     try:
         while True:
             asyncio.run(main(symbols, currencies, intervals))
