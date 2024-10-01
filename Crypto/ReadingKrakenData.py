@@ -1,15 +1,38 @@
 import pandas as pd
 import numpy as np
 import csv
+import matplotlib.pyplot as plt
+import csv
+import ast
+import os
 
-fname = "kraken_ETH_USD_20240930"
-with open('Data/kraken_files/' + fname + ".txt", 'r') as txt_file, open('Data/kraken_files/' + fname + ".csv", 'w', newline='') as csv_file:
-    writer = csv.writer(csv_file)
-    for line in txt_file:
-        # Assuming the delimiter in your TXT file is a comma
-        row = line.strip().split('\n') 
-        writer.writerow(row)
+def txt_to_csv(input_file, output_file, delete_input=False):
+    if not os.path.exists(input_file):
+        print("file doesn't exist")
+        return 
+
+    with open(input_file, 'r') as infile, open(output_file, 'w', newline='') as outfile:
+        csv_writer = csv.writer(outfile)
         
+        # Write header
+        first_line = infile.readline().strip()
+        header = list(ast.literal_eval(first_line).keys())
+        csv_writer.writerow(header)
+        
+        # Write data
+        infile.seek(0)  # Reset file pointer to beginning
+        for line in infile:
+            data = ast.literal_eval(line.strip())
+            csv_writer.writerow(data.values())
 
-df = pd.read_csv("output.csv")
-print(df.head())
+    if delete_input:
+        os.remove(input_file)
+
+
+if __name__ == "__main__":
+    fname = "kraken_ETH_USDT_20241001"
+
+    input_file = "Data/kraken_files/" + fname + ".txt"
+    output_file = "Data/kraken_files/" + fname + ".csv"
+
+    txt_to_csv(input_file, output_file, delete_input=True)

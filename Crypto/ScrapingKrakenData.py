@@ -20,9 +20,9 @@ import aiohttp
 # number of bids and asks, timestamp
 # imbalance ratio: b - a / b + a, liquidity gap, spread
 
-def agg_data(bids, asks, trades):
+def agg_data(bids, asks, trades, dict=False):
     if delta(trades) is None:
-        curr_delta, max_delta, min_delta = (0, 0, 0)
+        curr_delta, max_delta, min_delta = (np.NaN, np.NaN, np.NaN)
     else:
         curr_delta, max_delta, min_delta = delta(trades)
     best_bid = bids["price"].max()
@@ -35,7 +35,10 @@ def agg_data(bids, asks, trades):
             "curr_delta": curr_delta, "max_delta": max_delta, "min_delta": min_delta,
             "bid_vpoc": bid_vpoc, "ask_vpoc": ask_vpoc,
             "trades": len(trades), "trades_vol": trades["volume"].sum()}
-    return data
+    if dict:
+        return data
+    else:
+        return list(data.keys()), list(data.values())
             
 
 # vpoc
@@ -121,30 +124,29 @@ async def job(symbol="ETH", currency="USD", interval=30):
     trades_df.set_index("timestamp", inplace=True)
     trades_df.index = pd.to_datetime(trades_df.index, unit="s")
 
-    res = agg_data(bids, asks, trades_df)
+    keys, values = agg_data(bids, asks, trades_df, dict=False)
     str_date = datetime.now().strftime("%Y%m%d")
-    f = open(f"Data/kraken_files/kraken_{symbol}_{currency}_{str_date}.txt", "a")
-    f.write(str(res) + "\n")
-    print("written to file!")
+    str_keys = ",".join(map(str, keys))
+    str_values = ",".join(map(str, values))
+    fname = f"Data/kraken_files/kraken_{symbol}_{currency}_{str_date}.csv"
 
-# print("STARTING!!!")
-# try:
-#   while True:
-#     schedule.run_pending()
-# except KeyboardInterrupt:
-#         print('Interrupted')
-#         try:
-#             sys.exit(130)
-#         except SystemExit:
-#             os._exit(130)
+    file_exist = None
+    if os.path.exists(fname):
+        file_exist = True
+    
+    with open(fname, "a") as f:
+        if not file_exist:
+            f.write(str_keys + "\n")
+        f.write(str_values + "\n")
+        print("written to file!")
 
 async def main(symbols, currencies, intervals):
         args = [job(symbol, currency, interval) for symbol, currency, interval in zip(symbols, currencies, intervals)]
         await asyncio.gather(*args)
 
-symbols = ["BTC", "ETH"]
-currencies = ["USD", "USD"]
-intervals = [30, 30]             
+symbols = ["SOL"]
+currencies = ["USD"]
+intervals = [30]             
 
 if __name__ == "__main__":
     try:
