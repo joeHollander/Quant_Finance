@@ -6,24 +6,26 @@ import csv
 import ast
 import os
 
-def txt_to_csv(input_file, output_file, delete_input=False):
+def txt_to_csv(input_file, output_file=None, delete_input=False):
+    if output_file is None:
+        output_file = input_file.replace(".txt", ".csv")
     if not os.path.exists(input_file):
         print("file doesn't exist")
         return 
 
-    with open(input_file, 'r') as infile, open(output_file, 'w', newline='') as outfile:
-        csv_writer = csv.writer(outfile)
-        
-        # Write header
-        first_line = infile.readline().strip()
-        header = list(ast.literal_eval(first_line).keys())
-        csv_writer.writerow(header)
-        
-        # Write data
-        infile.seek(0)  # Reset file pointer to beginning
-        for line in infile:
-            data = ast.literal_eval(line.strip())
-            csv_writer.writerow(data.values())
+    data = []
+    with open(r'Data\kraken_files\btc.txt', 'r') as txt_file:
+        for line in txt_file:
+            data.append(ast.literal_eval(line.strip()))
+
+    headers = data[0].keys()
+
+    with open(output_file, 'w', newline='') as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=headers)
+        writer.writeheader()
+
+        for row in data:
+            writer.writerow(row)
 
     if delete_input:
         os.remove(input_file)
