@@ -1,5 +1,5 @@
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 import pandas as pd
 import numpy as np
@@ -22,7 +22,7 @@ import aiohttp
 
 def agg_data(bids, asks, trades, dict=False):
     if delta(trades) is None:
-        curr_delta, max_delta, min_delta = (np.NaN, np.NaN, np.NaN)
+        curr_delta, max_delta, min_delta = 0, 0, 0
     else:
         curr_delta, max_delta, min_delta = delta(trades)
     best_bid = bids["price"].max()
@@ -65,6 +65,12 @@ def delta(data, percent=True):
     return ((data.iloc[-1, :]["delta"], data.index[-1].timestamp()), 
             (data["delta"].max(), data["delta"].idxmax().timestamp()), 
             (data["delta"].min(), data["delta"].idxmin().timestamp()))
+
+def csv_to_parquet(fname, remove_csv=False):
+    df = pd.read_csv(fname)
+    df.to_parquet(fname.replace(".csv", ".parquet"), engine='pyarrow', compression='snappy')
+    if remove_csv:
+        os.remove(fname)
 
 date_started = None
 async def job(symbol="ETH", currency="USD", interval=30):
@@ -126,13 +132,19 @@ async def job(symbol="ETH", currency="USD", interval=30):
 
     keys, values = agg_data(bids, asks, trades_df, dict=False)
     str_date = datetime.now().strftime("%Y%m%d")
+    str_yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y%m%d")
     str_keys = ",".join(map(str, keys))
     str_values = ",".join(map(str, values))
     fname = f"Data/kraken_files/kraken_{symbol}_{currency}_{str_date}.csv"
+    yesterday_fname = f"Data/kraken_files/kraken_{symbol}_{currency}_{str_yesterday}.csv"
 
     file_exist = None
     if os.path.exists(fname):
         file_exist = True
+    else:
+        file_exist = False
+        if os.path.exists(yesterday_fname):
+            await csv_to_parquet(yesterday_fname)
     
     with open(fname, "a") as f:
         if not file_exist:
