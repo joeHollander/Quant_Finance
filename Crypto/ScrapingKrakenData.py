@@ -72,6 +72,7 @@ def delta(data, percent=True):
 def push_to_github(fname, github_token = githubtoken, commit_message=None, branch="main"):
     # change working directory to crypto
     os.chdir(os.path.abspath(""))
+    fname = os.path.abspath(fname).replace("\\", "/")
 
     short_fname = fname.split("/")[-1]
 
@@ -168,6 +169,9 @@ async def job(symbol="ETH", currency="USD", interval=30):
         if os.path.exists(yesterday_fname):
             await csv_to_parquet(yesterday_fname, remove_csv=True, github=True)
 
+    # with open("Data/kraken_files/btc.txt", "a") as f:
+    #     f.write("test")
+    # push_to_github("Data/kraken_files/btc.txt")
     
     with open(fname, "a") as f:
         if not file_exist:
