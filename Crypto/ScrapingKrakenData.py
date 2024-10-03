@@ -10,6 +10,9 @@ import os
 from functools import partial
 import asyncio
 import aiohttp
+import subprocess
+
+githubtoken = os.getenv("GITHUB_TOKEN")
 
 # symbol = input("Enter symbol: ")
 # currency = input("Enter currency: ")
@@ -66,11 +69,30 @@ def delta(data, percent=True):
             (data["delta"].max(), data["delta"].idxmax().timestamp()), 
             (data["delta"].min(), data["delta"].idxmin().timestamp()))
 
-def csv_to_parquet(fname, remove_csv=False):
+def push_to_github(fname, github_token = githubtoken, commit_message=None, branch="main"):
+    # change working directory to crypto
+    os.chdir(os.path.abspath(""))
+
+    short_fname = fname.split("/")[-1]
+
+    if commit_message is None:
+        commit_message = f"Committing data: {fname}"
+
+    try:
+        subprocess.run(["git", "add", fname], check=True)
+        subprocess.run(["git", "commit", "-m", commit_message], check=True)
+        subprocess.run(['git', 'push', f'https://{github_token}:x-oauth-basic@github.com/joeHollander/Quant_Finance.git', branch], check=True)
+    except subprocess.CalledProcessError as e:
+        print("Error: Failed to push changes to GitHub: ", e)
+
+def csv_to_parquet(fname, remove_csv=False, github=True):
     df = pd.read_csv(fname)
     df.to_parquet(fname.replace(".csv", ".parquet"), engine='pyarrow', compression='snappy')
     if remove_csv:
         os.remove(fname)
+    if github:
+        push_to_github(fname.replace(".csv", ".parquet"))
+
 
 date_started = None
 async def job(symbol="ETH", currency="USD", interval=30):
@@ -144,7 +166,8 @@ async def job(symbol="ETH", currency="USD", interval=30):
     else:
         file_exist = False
         if os.path.exists(yesterday_fname):
-            await csv_to_parquet(yesterday_fname)
+            await csv_to_parquet(yesterday_fname, remove_csv=True, github=True)
+
     
     with open(fname, "a") as f:
         if not file_exist:
@@ -160,9 +183,10 @@ if __name__ == "__main__":
     symbols = ["SOL"]
     currencies = ["USD"]
     intervals = [30]  
+    start_date = datetime.now().date()
 
     try:
-        while True:
+        while datetime.now().date() - start_date < timedelta(days=89):
             asyncio.run(main(symbols, currencies, intervals))
             time.sleep(30)
     except KeyboardInterrupt:
