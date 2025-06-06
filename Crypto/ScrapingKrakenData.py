@@ -19,7 +19,8 @@ githubtoken = os.getenv("GITHUB_TOKEN")
 # interval = int(input("Enter interval in seconds: "))
 
 # saving: 
-# vpoc, max delta, min delta, current delta, vwap, 
+# delta is diff between bid and ask volumes
+# vpoc (most traded price), max delta, min delta, current delta, vwap, 
 # number of bids and asks, timestamp
 # imbalance ratio: b - a / b + a, liquidity gap, spread
 
